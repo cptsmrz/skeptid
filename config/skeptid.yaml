@@ -1,0 +1,30 @@
+text:
+  primary: own
+  chain: [own, opensource, external]
+  shadow: true
+  timeout_s: 8
+
+email:
+  primary: own
+  chain: [own, opensource, external]
+  shadow: true
+  timeout_s: 8
+
+image:
+  primary: external
+  chain: [external, opensource, own]
+  shadow: true
+  timeout_s: 12
+
+video:
+  primary: external
+  chain: [external, opensource, own]
+  shadow: true
+  timeout_s: 12
+  top_k_to_external: 4
+
+mode: mock # mock | live ; mock is default for dev and tests
+
+thresholds:
+  low_max: 0.35
+  medium_max: 0.70
