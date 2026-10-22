@@ -39,6 +39,7 @@ class ProviderResult:
     evidence: list[Evidence]
     latency_ms: int
     model_version: str
+    coverage: list[str] = field(default_factory=list)
     error: str | None = None
 
 @dataclass

@@ -24,9 +24,9 @@ def test_healthz_endpoint(client: TestClient) -> None:
     assert resp.headers.get("x-frame-options") == "DENY"
 
 
-def test_analyze_text_mock_success(client: TestClient) -> None:
+def test_analyze_message_json_success(client: TestClient) -> None:
     payload = {"text": "URGENT: Your account has been suspended. Click here to login."}
-    resp = client.post("/api/analyze/text", json=payload)
+    resp = client.post("/api/message/analyze", json=payload)
     assert resp.status_code == 200
     data = resp.json()
 
@@ -43,12 +43,44 @@ def test_analyze_text_mock_success(client: TestClient) -> None:
     assert data["limits_note"] == "Risk score with evidence, not proof."
 
 
-def test_analyze_text_validation_failure(client: TestClient) -> None:
-    resp = client.post("/api/analyze/text", json={"text": "   "})
+def test_analyze_message_multipart_txt(client: TestClient) -> None:
+    files = {"file": ("sample.txt", b"Suspicious account activity detected.", "text/plain")}
+    resp = client.post("/api/message/analyze", files=files)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["modality"] == "text"
+    assert "label" in data
+
+
+def test_analyze_message_multipart_eml(client: TestClient) -> None:
+    eml_content = (
+        b"From: security@fake-bank.com\r\n"
+        b"To: victim@example.com\r\n"
+        b"Subject: Urgent security alert\r\n"
+        b"\r\n"
+        b"Please reset your password immediately at http://phishing.evil/login\r\n"
+    )
+    files = {"file": ("alert.eml", eml_content, "message/rfc822")}
+    resp = client.post("/api/message/analyze", files=files)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["modality"] == "email"
+    assert "label" in data
+
+
+def test_analyze_message_validation_failure(client: TestClient) -> None:
+    resp = client.post("/api/message/analyze", json={"text": "   "})
     assert resp.status_code == 400
 
 
-def test_analyze_text_all_providers_fail_returns_503() -> None:
+def test_analyze_message_unsupported_file(client: TestClient) -> None:
+    files = {"file": ("malware.exe", b"binary content", "application/octet-stream")}
+    resp = client.post("/api/message/analyze", files=files)
+    assert resp.status_code == 400
+    assert "Allowed: .eml, .txt" in resp.json()["detail"]
+
+
+def test_analyze_message_all_providers_fail_returns_503() -> None:
     cfg = SkeptidConfig(
         text=ModalityConfig(primary="p1", chain=["p1"], timeout_s=1.0)
     )
@@ -61,7 +93,7 @@ def test_analyze_text_all_providers_fail_returns_503() -> None:
     app.state.orchestrator = orchestrator
 
     with TestClient(app) as custom_client:
-        resp = custom_client.post("/api/analyze/text", json={"text": "Any text"})
+        resp = custom_client.post("/api/message/analyze", json={"text": "Any text"})
         assert resp.status_code == 503
         assert "All analysis providers failed" in resp.json()["detail"]
 

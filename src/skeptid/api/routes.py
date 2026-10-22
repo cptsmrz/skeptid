@@ -11,7 +11,6 @@ from skeptid.api.schemas import (
     HealthResponse,
     ProviderStatusItem,
     ProviderStatusResponse,
-    TextAnalysisRequest,
     VerdictResponse,
 )
 from skeptid.api.security import check_rate_limit
@@ -38,18 +37,77 @@ async def healthz() -> HealthResponse:
 
 
 @router.post(
-    "/api/analyze/text",
+    "/api/message/analyze",
     response_model=VerdictResponse,
     dependencies=[Depends(check_rate_limit)],
     tags=["Analysis"],
 )
-async def analyze_text(
-    payload: TextAnalysisRequest,
+async def analyze_message(
+    request: Request,
     orchestrator: Orchestrator = Depends(get_orchestrator),
 ) -> VerdictResponse:
-    """Analyze plain text content for spam, phishing, threats, or cyberbullying."""
-    clean_text = validate_text(payload.text)
-    inp = AnalysisInput(modality=Modality.TEXT, text=clean_text)
+    """Analyze message content (raw text, .txt, or .eml) in the Message Lane."""
+    content_type = request.headers.get("content-type", "")
+
+    if "application/json" in content_type:
+        try:
+            body = await request.json()
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid JSON payload.",
+            ) from exc
+        raw_text = body.get("text", "")
+        clean_text = validate_text(raw_text)
+        inp = AnalysisInput(modality=Modality.TEXT, text=clean_text)
+
+    elif "multipart/form-data" in content_type:
+        form = await request.form()
+        uploaded_file = form.get("file")
+        form_text = form.get("text")
+
+        if uploaded_file and hasattr(uploaded_file, "filename") and hasattr(uploaded_file, "read"):
+            filename = (uploaded_file.filename or "").lower()
+            file_bytes = await uploaded_file.read()
+            if filename.endswith(".eml"):
+                import email
+                from email import policy
+                msg = email.message_from_bytes(file_bytes, policy=policy.default)
+                body = msg.get_body(preferencelist=("plain", "html"))
+                msg_text = body.get_content() if body is not None else ""
+                clean_text = validate_text(msg_text)
+                inp = AnalysisInput(
+                    modality=Modality.EMAIL,
+                    text=clean_text,
+                    raw_bytes=file_bytes,
+                    filename=uploaded_file.filename,
+                )
+            elif filename.endswith(".txt"):
+                decoded_text = file_bytes.decode("utf-8", errors="replace")
+                clean_text = validate_text(decoded_text)
+                inp = AnalysisInput(
+                    modality=Modality.TEXT,
+                    text=clean_text,
+                    filename=uploaded_file.filename,
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Unsupported file format for message lane. Allowed: .eml, .txt",
+                )
+        elif form_text is not None:
+            clean_text = validate_text(str(form_text))
+            inp = AnalysisInput(modality=Modality.TEXT, text=clean_text)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Form must provide either a 'file' (.eml/.txt) or 'text' field.",
+            )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Content-Type must be application/json or multipart/form-data.",
+        )
 
     try:
         verdict = await orchestrator.analyze(inp)

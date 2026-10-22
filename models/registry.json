@@ -1,4 +1,107 @@
 {
-  "models": {},
-  "promotions": []
+  "models": {
+    "text_v1": {
+      "modality": "text",
+      "evaluated_at": "2026-10-22T04:45:10.927731+00:00",
+      "holdout_version": "holdout_v1",
+      "holdout_samples": 1748,
+      "coverage": [
+        "bullying",
+        "phishing",
+        "safe",
+        "spam",
+        "threat"
+      ],
+      "metrics": {
+        "accuracy": 0.9245,
+        "macro_f1": 0.908,
+        "per_class": {
+          "bullying": {
+            "precision": 0.9359,
+            "recall": 0.8723,
+            "f1_score": 0.903,
+            "support": 603
+          },
+          "phishing": {
+            "precision": 0.9966,
+            "recall": 0.9833,
+            "f1_score": 0.9899,
+            "support": 300
+          },
+          "safe": {
+            "precision": 0.9014,
+            "recall": 0.9586,
+            "f1_score": 0.9291,
+            "support": 677
+          },
+          "spam": {
+            "precision": 0.9882,
+            "recall": 0.875,
+            "f1_score": 0.9282,
+            "support": 96
+          },
+          "threat": {
+            "precision": 0.7294,
+            "recall": 0.8611,
+            "f1_score": 0.7898,
+            "support": 72
+          }
+        },
+        "confusion_matrix": {
+          "bullying": {
+            "bullying": 526,
+            "phishing": 1,
+            "safe": 57,
+            "spam": 0,
+            "threat": 19
+          },
+          "phishing": {
+            "bullying": 1,
+            "phishing": 295,
+            "safe": 4,
+            "spam": 0,
+            "threat": 0
+          },
+          "safe": {
+            "bullying": 23,
+            "phishing": 0,
+            "safe": 649,
+            "spam": 1,
+            "threat": 4
+          },
+          "spam": {
+            "bullying": 3,
+            "phishing": 0,
+            "safe": 9,
+            "spam": 84,
+            "threat": 0
+          },
+          "threat": {
+            "bullying": 9,
+            "phishing": 0,
+            "safe": 1,
+            "spam": 0,
+            "threat": 62
+          }
+        }
+      },
+      "missing_classes": [],
+      "gate_met": true,
+      "gate_reasons": []
+    }
+  },
+  "promotions": [],
+  "holdout": {
+    "version": "holdout_v1",
+    "filename": "text_holdout_v1.csv",
+    "sha256": "e626d9012e68f6ba9f7b4f11772f86257dc19c26d0787f2b625071328406b26a",
+    "seed": 42,
+    "sources": [
+      "cyberbullying_tweets",
+      "jigsaw_toxic",
+      "nazario_phishing",
+      "sms_spam_uci"
+    ],
+    "samples": 1748
+  }
 }

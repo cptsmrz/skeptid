@@ -5,9 +5,11 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
-class TextAnalysisRequest(BaseModel):
-    """Request payload for text analysis."""
+class MessageAnalysisRequest(BaseModel):
+    """Request payload for text message analysis."""
     text: str = Field(..., max_length=20000, description="Raw text to evaluate (max 20,000 chars)")
+
+TextAnalysisRequest = MessageAnalysisRequest
 
 class EvidenceSchema(BaseModel):
     """Forensic evidence entry."""

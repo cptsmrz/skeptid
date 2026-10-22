@@ -15,6 +15,7 @@ Read this file fully before writing code. Follow the milestone order. Stop for a
 6. **Quality bar:** type hints, `ruff` clean, modules under ~300 lines, one responsibility per module, tests for every milestone.
 7. **Honest framing.** Output is a *risk score with evidence, not proof*. Do not label anything "trained from scratch" if it uses a pretrained encoder.
 8. Commit after each milestone with a clear message.
+9. **Environment:** pin Python 3.12 (`.python-version`, `requires-python`) and commit a dependency lockfile. Do not use pre-release or newest-minor interpreters: ML wheels (NumPy, scikit-learn, torch, OpenCV) lag behind.
 
 ---
 
@@ -121,6 +122,7 @@ class ProviderResult:
     evidence: list[Evidence]
     latency_ms: int
     model_version: str
+    coverage: list[str]              # labels this model was actually trained/able to predict
     error: str | None = None
 
 class Provider(Protocol):
@@ -149,12 +151,13 @@ mode:  mock        # mock | live ; mock is the default for dev and tests
 Behaviour:
 1. Run all configured providers **concurrently** (`asyncio.gather` with per-provider timeout).
 2. The **displayed result** comes from the first provider in `chain` that returned `ok=True` (normally the primary). The others are shadow results: stored, and shown in the "Providers" panel.
-3. **Disagreement:** if `max(risk) - min(risk) > 0.40` across ok providers, set `disagreement=true` and reduce confidence (see Fusion).
+3. **Disagreement:** if `max(risk) - min(risk) > 0.40` across ok providers, set `disagreement=true` and reduce confidence (see Fusion). A provider whose `coverage` does not include every label of the modality is excluded from this check, and cannot be the displayed result.
 4. If all providers fail, return HTTP 503 with a clear message. Never return a fabricated verdict.
 5. Providers that fail 3 times in 60s are circuit-broken for 60s and skipped.
 
 **Promotion gate** (`training/registry.py`): a modality's primary changes to `own` only if the candidate model's metrics in `registry.json` meet the gate, evaluated on the frozen holdout:
-- Text: macro-F1 ≥ 0.90 and per-class recall ≥ 0.80.
+- Text: every label in `TEXT_LABELS` present in the holdout, macro-F1 ≥ 0.90, and per-class recall ≥ 0.80.
+- A provider is eligible as primary only if its `coverage` includes every label of the modality. Until `own` passes the gate, the config primary for that modality must be another provider.
 - Image: `own` is never auto-promoted. It is fallback and cross-check unless an out-of-distribution (unseen generator) AUC ≥ 0.90 is recorded. Report both in-distribution and out-of-distribution numbers.
 
 Promotion is a CLI command (`python -m skeptid.training.registry promote --modality text`) that rewrites the config. It must refuse if the gate is not met.
@@ -227,7 +230,7 @@ Pure functions, fully unit-tested.
 
 | Method | Path | Body | Notes |
 |---|---|---|---|
-| POST | `/api/message/analyze` | JSON `{text}` or multipart `.eml`/`.txt` | Message lane: Text or Email engine chosen by input |
+| POST | `/api/message/analyze` | JSON `{text}`, or multipart with field `file` (`.eml` → Email engine, `.txt` → Text engine) or form field `text` (Text engine) | Message lane |
 | POST | `/api/media/analyze` | multipart: `file` | Media lane: image or video detected by magic bytes |
 | POST | `/api/feedback` | `{analysis_id, correct: bool, true_label?}` | |
 | GET | `/api/metrics` | | from `registry.json` and DB aggregates |
@@ -273,7 +276,7 @@ Verdict response:
 | Audio (stretch) | ASVspoof |
 
 Pipeline:
-1. `prepare_text.py` maps every source onto `TEXT_LABELS`, records `source` per row, dedupes, and creates **train / val / frozen holdout** splits (70/15/15, stratified, fixed seed). Holdout is written once and never regenerated or mixed with feedback data.
+1. `prepare_text.py` maps every source onto `TEXT_LABELS`, records `source` per row, dedupes, and creates **train / val / frozen holdout** splits (70/15/15, stratified, fixed seed). The holdout is frozen **per data release**: `holdout_v1` is written once for a given set of sources and never regenerated or mixed with feedback data. When a new source is added (for example phishing or threat data), create `holdout_v2` and re-evaluate every candidate on it. Metrics are only comparable within the same holdout version. `registry.json` records the holdout version, file SHA-256, seed, and source list for each evaluation.
 2. `train_text.py` trains the baseline and saves `models/text_vN.joblib`.
 3. `evaluate.py` computes accuracy, macro-F1, per-class precision/recall, confusion matrix, and (image) AUC in-distribution and out-of-distribution, then writes `models/registry.json`.
 4. `retrain.py`: merges base training data with reviewed feedback labels (min 20 new labels, deduped), trains a candidate, evaluates on the frozen holdout, and promotes only if it does not regress. Triggered by CLI or the dashboard button.
@@ -358,7 +361,7 @@ Rules:
 
 | # | Deliverable | Acceptance |
 |---|---|---|
-| **M1** | Scaffold, `core/` contracts, config, mock providers, orchestrator with fallback, FastAPI skeleton, `/healthz`, tests | `make test` green; mock text analysis works end to end via API |
+| **M1** | Scaffold, `core/` contracts, config, mock providers, orchestrator with fallback, FastAPI skeleton, `/healthz`, tests | `make test` green; mock message analysis works end to end via `POST /api/message/analyze` (JSON or multipart) |
 | **M2** | Text pipeline: `prepare_text`, `train_text`, `evaluate`, `own_text` provider with span evidence, registry, gate | Trained model loads; holdout metrics written by the script; promotion refuses when the gate is unmet |
 | **M3** | Media lane: image engine and video engine (forensics, `own_image` baseline, heatmap, frame sampling, aggregation, validators, P2 and P1 adapters, mock-capable) | `/api/media/analyze` returns a verdict plus heatmap for images and a frame timeline for video; forensic and video unit tests pass |
 | **M4** | Message lane complete: email engine, in-lane fusion, attachments list, feedback store, shadow-mode logging | `.eml` with a phishing sample returns a verdict with URL, header, and text evidence; attachments are listed separately and contribute at most 10% of the message risk |

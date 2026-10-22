@@ -70,11 +70,20 @@ def classify_risk_level(
     return RiskLevel.HIGH.value
 
 
-def check_disagreement(ok_results: list[ProviderResult], threshold: float = 0.40) -> bool:
-    """Return True if max(risk) - min(risk) > threshold across successful providers."""
-    if len(ok_results) < 2:
+def check_disagreement(
+    ok_results: list[ProviderResult],
+    expected_labels: list[str] | None = None,
+    threshold: float = 0.40,
+) -> bool:
+    """Return True if max(risk) - min(risk) > threshold across covering successful providers."""
+    covering_results = ok_results
+    if expected_labels:
+        expected_set = set(expected_labels)
+        covering_results = [r for r in ok_results if set(r.coverage) >= expected_set]
+
+    if len(covering_results) < 2:
         return False
-    risks = [r.risk for r in ok_results]
+    risks = [r.risk for r in covering_results]
     return (max(risks) - min(risks)) > threshold
 
 
@@ -126,7 +135,8 @@ def fuse_results(
 ) -> Verdict:
     """Fuse provider results into the final Verdict schema."""
     ok_results = [r for r in all_results if r.ok]
-    disagreement = check_disagreement(ok_results)
+    expected_labels = TEXT_LABELS if modality in (Modality.TEXT, Modality.EMAIL) else IMAGE_LABELS
+    disagreement = check_disagreement(ok_results, expected_labels=expected_labels)
 
     # Determine dominant label from displayed provider
     scores = displayed.label_scores

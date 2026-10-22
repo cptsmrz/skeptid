@@ -7,7 +7,14 @@ from collections import defaultdict
 from skeptid.core.config import SkeptidConfig, load_config
 from skeptid.core.fusion import fuse_results
 from skeptid.core.interfaces import Provider
-from skeptid.core.types import AnalysisInput, Modality, ProviderResult, Verdict
+from skeptid.core.types import (
+    IMAGE_LABELS,
+    TEXT_LABELS,
+    AnalysisInput,
+    Modality,
+    ProviderResult,
+    Verdict,
+)
 from skeptid.providers.mock import MockProvider
 
 
@@ -74,13 +81,25 @@ class Orchestrator:
             self._init_default_providers()
 
     def _init_default_providers(self) -> None:
-        """Initialize default mock providers for all modalities and chains."""
+        """Initialize providers for all modalities according to config mode."""
+        is_live = getattr(self.config, "mode", "mock") == "live"
+
         for modality in Modality:
             if modality == Modality.AUDIO:
                 continue
             try:
                 mod_cfg = self.config.get_modality_config(modality.value)
                 for pid in mod_cfg.chain:
+                    if is_live and modality == Modality.TEXT:
+                        if pid == "own":
+                            from skeptid.providers.own_text import OwnTextProvider
+                            self.providers[modality][pid] = OwnTextProvider(provider_id=pid)
+                            continue
+                        elif pid == "opensource":
+                            from skeptid.providers.opensource import OpenSourceTextProvider
+                            self.providers[modality][pid] = OpenSourceTextProvider(provider_id=pid)
+                            continue
+
                     self.providers[modality][pid] = MockProvider(
                         provider_id=pid,
                         modality=modality,
@@ -172,10 +191,16 @@ class Orchestrator:
         # Run all chain providers concurrently
         results: list[ProviderResult] = await asyncio.gather(*tasks)
 
-        # Select displayed result: first provider in chain order that succeeded (ok=True)
+        expected_labels = (
+            set(TEXT_LABELS)
+            if modality in (Modality.TEXT, Modality.EMAIL)
+            else set(IMAGE_LABELS)
+        )
+
+        # Select displayed result: first covering provider in chain order that succeeded (ok=True)
         displayed: ProviderResult | None = None
         for res in results:
-            if res.ok:
+            if res.ok and set(res.coverage) >= expected_labels:
                 displayed = res
                 break
 

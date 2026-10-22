@@ -120,5 +120,6 @@ class MockProvider(Provider):
             evidence=evidence,
             latency_ms=latency_ms,
             model_version="mock",
+            coverage=list(labels),
             error=None,
         )

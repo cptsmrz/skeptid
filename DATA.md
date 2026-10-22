@@ -4,31 +4,46 @@ This document records the provenance, licenses, and usage of all datasets utiliz
 
 ## Planned Datasets
 
-### Text Spam
+## Text Modality Datasets
+
+### Text Spam (Automated Download)
 - **Dataset**: SMS Spam Collection
-- **Source**: UCI Machine Learning Repository
+- **Source**: UCI Machine Learning Repository (`https://archive.ics.uci.edu/static/public/228/sms+spam+collection.zip`)
 - **License**: Creative Commons Attribution 4.0 International (CC BY 4.0)
-- **Usage**: Training baseline text classifier on spam vs legitimate messages.
+- **Target Path**: `data/raw/sms_spam_collection/SMSSpamCollection`
+- **Automation**: Downloaded automatically by `python -m skeptid.training.prepare_text` (no login required).
+- **Labels**: `ham` -> `safe`, `spam` -> `spam`.
 
 ### Text Phishing
-- **Dataset**: Nazario Phishing Corpus
-- **Source**: Monkey.org (~jose/phishing)
-- **License**: Public / Research use
-- **Usage**: Phishing email body extraction and training.
-- **Dataset**: Enron Email Dataset
-- **Source**: CMU Enron Corpus
-- **License**: Public domain / research release
-- **Usage**: Legitimate email body and header baseline.
+- **Dataset**: Phishing Emails & Texts Dataset
+- **Source**: Hugging Face (`ealvaradob/phishing-dataset` -> `texts.json`)
+- **License**: Apache License 2.0 (verified from HF repository metadata)
+- **Target Path**: `data/raw/nazario_phishing.csv`
+- **Automation**: Public Hugging Face dataset auto-downloaded by `prepare_text.py` without login credentials.
+- **Expected Columns**: `text`, `label`
+- **Labels**: `label == 1` -> `phishing` (over 7,600 samples), `label == 0` -> `safe` (over 12,000 samples).
+- **Alternative / Legacy**: Nazario Phishing Corpus (`~jose/phishing`) & CMU Enron Corpus (`enron_clean.csv`).
 
-### Threat and Bullying
-- **Dataset**: Jigsaw Toxic Comment Classification Challenge
-- **Source**: Kaggle / Jigsaw
-- **License**: CC0 Public Domain
-- **Usage**: Toxic, threat, and severe toxic label extraction.
-- **Dataset**: Cyberbullying Classification Dataset
-- **Source**: Kaggle / Public research
-- **License**: Open Data Commons Public Domain Dedication and License (PDDL) / CC BY 4.0
-- **Usage**: Social media cyberbullying text classification.
+### Cyberbullying
+- **Dataset**: Cyberbullying Dataset
+- **Source**: Hugging Face (`AnikaBasu/CyberbullyingDataset` -> `ParsedAnikaBCyberbullyingDataset.json`)
+- **License**: Creative Commons Attribution 4.0 International (CC BY 4.0)
+- **Target Path**: `data/raw/cyberbullying_tweets.csv`
+- **Automation**: Public Hugging Face dataset auto-downloaded by `prepare_text.py` without login credentials.
+- **Expected Columns**: `tweet_text`, `cyberbullying_type` (or `instruction`, `output`)
+- **Labels**: `gender`, `religion`, `other_cyberbullying`, `age`, `ethnicity` -> `bullying` (over 2,500 samples), `not_cyberbullying` -> `safe`.
+
+### Threat & Toxicity
+- **Dataset**: Jigsaw Toxic Comment Classification Challenge (Mirror)
+- **Source**: Hugging Face (`thesofakillers/jigsaw-toxic-comment-classification-challenge` -> `train.csv` and `google/jigsaw_toxicity_pred`)
+- **License**: CC-BY-SA-3.0 / CC0 1.0 (verified from HF repository metadata)
+- **Target Path**: `data/raw/jigsaw_toxic.csv`
+- **Automation**: Public Hugging Face dataset auto-downloaded by `prepare_text.py` without login credentials.
+- **Expected Columns**: `comment_text`, `threat`, `toxic`, `severe_toxic`, `insult`
+- **Labels**: rows with `threat == 1` -> `threat` (over 470 samples); rows with `toxic == 1` or `insult == 1` or `severe_toxic == 1` -> `bullying`.
+- **Note on Kaggle Token**: While Kaggle requires `kaggle.json` credentials for direct API downloads, public Hugging Face mirrors allow automated no-login downloading.
+
+> **Class Coverage Status**: All 5 `TEXT_LABELS` (`safe`, `phishing`, `spam`, `threat`, `bullying`) are fully populated and integrated into `data/holdout/text_holdout_v1.csv` and `data/processed/text_train.csv`. Zero missing classes.
 
 ### Image
 - **Dataset**: CIFAKE: Real and AI-Generated Synthetic Images

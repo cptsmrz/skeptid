@@ -20,12 +20,12 @@ def run_smoke_tests() -> int:
         return 1
     print("  -> Passed")
 
-    # 2. Text analysis
-    print("Testing /api/analyze/text...")
+    # 2. Message analysis
+    print("Testing /api/message/analyze...")
     payload = {"text": "URGENT: Please verify your bank account password immediately."}
-    r = client.post("/api/analyze/text", json=payload)
+    r = client.post("/api/message/analyze", json=payload)
     if r.status_code != 200:
-        print(f"Text analysis failed: {r.status_code} {r.text}")
+        print(f"Message analysis failed: {r.status_code} {r.text}")
         return 1
     data = r.json()
     if not (data.get("mock") is True and "risk" in data and "label" in data):
