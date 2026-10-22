@@ -239,6 +239,22 @@
     return escapeHtml(String(value));
   }
 
+  function isUnvalidatedVersion(version) {
+    if (version === null || version === undefined) return false;
+    var lower = String(version).toLowerCase();
+    return lower.indexOf("mock") !== -1 || lower.indexOf("heuristic") !== -1;
+  }
+
+  function renderModelVersion(version) {
+    var html = "<p class=\"provider-version\"><span class=\"muted\">model_version</span> ";
+    html += "<span class=\"mono\">" + showField(version) + "</span>";
+    if (isUnvalidatedVersion(version)) {
+      html += " <span class=\"chip tag-plain\">not validated</span>";
+    }
+    html += "</p>";
+    return html;
+  }
+
   function renderProviders(v) {
     var items = Array.isArray(v.providers) ? v.providers : [];
     if (!items.length) return "";
@@ -260,10 +276,10 @@
       } else if (typeof p.risk === "number") {
         html += "<p class=\"num\">" + p.risk + "</p>";
       }
-      var bits = [];
-      if (p.model_version) bits.push(showField(p.model_version));
-      if (typeof p.latency_ms === "number") bits.push(p.latency_ms + " ms");
-      if (bits.length) html += "<p class=\"muted\">" + bits.join(" · ") + "</p>";
+      html += renderModelVersion(p.model_version);
+      if (typeof p.latency_ms === "number") {
+        html += "<p class=\"muted num\">" + p.latency_ms + " ms</p>";
+      }
       html += "</div>";
     });
     html += "</div></div>";

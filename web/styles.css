@@ -616,6 +616,21 @@ textarea:focus-visible {
   color: var(--ink-2);
 }
 
+.provider-version {
+  margin: 6px 0 0;
+  font-size: 13px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.chip.tag-plain {
+  border-color: var(--rule);
+  color: var(--ink-2);
+  background: var(--surface);
+}
+
 .muted {
   color: var(--ink-2);
   font-size: 13px;
