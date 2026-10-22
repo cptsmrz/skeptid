@@ -24,6 +24,9 @@
   var els = {
     html: document.documentElement,
     mockChip: document.getElementById("mock-chip"),
+    includeExternal: document.getElementById("include-external"),
+    msgPrivacy: document.getElementById("message-privacy"),
+    mediaPrivacy: document.getElementById("media-privacy"),
     theme: document.getElementById("theme-toggle"),
     msgLane: document.getElementById("message-lane"),
     msgTray: document.getElementById("message-tray"),
@@ -128,6 +131,16 @@
     });
   }
 
+  function privacyText(externalUsed) {
+    if (externalUsed === true) return "Content was sent to an external provider for this analysis";
+    if (externalUsed === false) return "Processed in memory, not stored";
+    return "Privacy status unavailable";
+  }
+
+  function updatePrivacyChip(chip, externalUsed) {
+    chip.textContent = privacyText(externalUsed);
+  }
+
   async function mockAnalyze(text, filename) {
     await sleep(reduceMotion() ? 80 : 720);
     var key = pickFixtureKey(text, filename);
@@ -139,6 +152,7 @@
       return { ok: false, status: fixture.status, body: { detail: fixture.detail } };
     }
     var body = JSON.parse(JSON.stringify(fixture));
+    body.external_used = false;
     if (body.providers) body.providers.forEach(function (p) { p.validated = false; });
     if (body.evidence && (body.modality === "text" || body.modality === "email")) {
       body.evidence = body.evidence.filter(function (ev) { return ev.kind !== "span"; });
@@ -162,22 +176,25 @@
     var fixture = fixtures[mediaKind(file)];
     if (!fixture) return { ok: false, status: 500, body: { detail: "Mock media fixture is missing." } };
     var body = JSON.parse(JSON.stringify(fixture));
+    body.external_used = false;
     if (body.providers) body.providers.forEach(function (p) { p.validated = false; });
     return { ok: true, status: 200, body: body };
   }
 
   async function liveAnalyze(text, file) {
     var res;
+    var useExternal = els.includeExternal.checked;
     try {
       if (file) {
         var form = new FormData();
         form.append("file", file, file.name);
+        form.append("use_external", String(useExternal));
         res = await fetch("/api/message/analyze", { method: "POST", body: form });
       } else {
         res = await fetch("/api/message/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: text })
+          body: JSON.stringify({ text: text, use_external: useExternal })
         });
       }
     } catch (err) {
@@ -201,6 +218,7 @@
   async function liveAnalyzeMedia(file) {
     var form = new FormData();
     form.append("file", file, file.name);
+    form.append("use_external", String(els.includeExternal.checked));
     try {
       var res = await fetch("/api/media/analyze", { method: "POST", body: form });
       var body = {};
@@ -482,6 +500,7 @@
     html += "<div class=\"stat\"><dt>Label</dt><dd>" + showField(v.label) + "</dd></div>";
     html += "</dl>";
     html += "<div class=\"risk-bar\" role=\"img\" aria-label=\"Risk " + (typeof v.risk === "number" ? v.risk : "not available") + "\"><span style=\"--risk:" + (typeof v.risk === "number" ? Math.max(0, Math.min(1, v.risk)) * 100 : 0) + "%\"></span><i class=\"tick tick-35\"></i><i class=\"tick tick-70\"></i></div>";
+    html += "<p class=\"chip privacy\">" + privacyText(v.external_used) + "</p>";
     if (v.limits_note) {
       html += "<p class=\"chip\">" + showField(v.limits_note) + "</p>";
     }
@@ -512,6 +531,7 @@
     html += "<p class=\"muted\">" + showField(v.label) + " · " + showField(v.modality) + "</p></div><div class=\"meta\"><div class=\"caps\">" + caseRef(v.id) + "</div><button class=\"copy-id ghost\" type=\"button\" data-id=\"" + showField(v.id) + "\">Copy ID</button></div></div>";
     html += "<dl class=\"stats\"><div class=\"stat\"><dt>Risk</dt><dd class=\"num\">" + (typeof v.risk === "number" ? v.risk : "") + "</dd></div><div class=\"stat\"><dt>Confidence</dt><dd class=\"num\">" + (typeof v.confidence === "number" ? v.confidence : "") + "</dd></div><div class=\"stat\"><dt>Label</dt><dd>" + showField(v.label) + "</dd></div></dl>";
     html += "<div class=\"risk-bar\" role=\"img\" aria-label=\"Risk " + (typeof v.risk === "number" ? v.risk : "not available") + "\"><span style=\"--risk:" + (typeof v.risk === "number" ? Math.max(0, Math.min(1, v.risk)) * 100 : 0) + "%\"></span><i class=\"tick tick-35\"></i><i class=\"tick tick-70\"></i></div>";
+    html += "<p class=\"chip privacy\">" + privacyText(v.external_used) + "</p>";
     var evidence = Array.isArray(v.evidence) ? v.evidence : [];
     var heat = evidence.find(function (ev) { return ev.kind === "heatmap" && ev.payload && ev.payload.png_b64; });
     if (mediaKind(file) === "image") {
@@ -873,6 +893,7 @@
       return;
     }
     message.verdict = v;
+    updatePrivacyChip(els.msgPrivacy, v.external_used);
     message.history.unshift({ text: text, file: file, verdict: v });
     if (message.history.length > 8) message.history.length = 8;
     setLaneMode(els.msgLane, "result");
@@ -910,6 +931,7 @@
     var verdict = result.body;
     if (!verdict || !verdict.id || typeof verdict.risk !== "number") { mediaFailure("The response did not contain a complete media verdict."); return; }
     media.verdict = verdict;
+    updatePrivacyChip(els.mediaPrivacy, verdict.external_used);
     setLaneMode(els.mediaLane, "result");
     renderMediaResult(verdict, file);
   }

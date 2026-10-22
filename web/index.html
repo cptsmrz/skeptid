@@ -21,6 +21,7 @@
           <span class="is-disabled" aria-disabled="true">Audio <span class="soon">soon</span></span>
         </nav>
         <span id="mock-chip" class="chip mock" hidden>MOCK</span>
+        <label class="external-toggle"><input id="include-external" type="checkbox" checked> Include external service</label>
         <button type="button" id="theme-toggle" aria-label="Switch to Graphite theme" aria-pressed="false">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
         </button>
@@ -44,7 +45,7 @@
               </div>
               <div class="progress" aria-hidden="true"><span></span></div>
               <div class="examples" id="message-examples" hidden aria-label="Mock examples"></div>
-              <span class="chip privacy">Processed in memory, not stored</span>
+              <span class="chip privacy" id="message-privacy">Privacy status appears with the analysis result</span>
             </div>
           </div>
 
@@ -73,7 +74,7 @@
                 <button type="button" class="primary" id="media-analyze">Analyse</button>
               </div>
               <p class="muted media-limits">JPG, PNG, WebP up to 10 MB · MP4, MOV, AVI up to 50 MB and 60 seconds</p>
-              <span class="chip privacy">Processed in memory, not stored</span>
+              <span class="chip privacy" id="media-privacy">Privacy status appears with the analysis result</span>
             </div>
           </div>
           <div class="glass panel-empty" id="media-empty"><p>Choose an image or video to analyse.</p></div>

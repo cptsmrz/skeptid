@@ -248,6 +248,19 @@ a {
   justify-content: flex-end;
 }
 
+.external-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-2);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.external-toggle input {
+  accent-color: var(--ink);
+}
+
 .nav {
   display: flex;
   gap: var(--s);
