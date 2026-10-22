@@ -15,7 +15,6 @@ from skeptid.core.types import (
     ProviderResult,
     Verdict,
 )
-from skeptid.providers.mock import MockProvider
 
 
 class AllProvidersFailedError(Exception):
@@ -105,6 +104,12 @@ class Orchestrator:
                             self.providers[modality][pid] = OwnImageProvider(provider_id=pid)
                             continue
 
+                        if pid == "external":
+                            from skeptid.providers.external import ExternalProvider
+                            self.providers[modality][pid] = ExternalProvider(provider_id=pid, modality=modality)
+                            continue
+
+                    from skeptid.providers.mock import MockProvider
                     self.providers[modality][pid] = MockProvider(
                         provider_id=pid,
                         modality=modality,
@@ -189,6 +194,8 @@ class Orchestrator:
             provider = self.providers[modality].get(pid)
             if not provider:
                 # Dynamically instantiate mock provider if missing
+                from skeptid.providers.mock import MockProvider
+
                 provider = MockProvider(provider_id=pid, modality=modality)
                 self.providers[modality][pid] = provider
             tasks.append(self._run_single_provider(provider, payload, mod_cfg.timeout_s))

@@ -35,6 +35,8 @@ htmlcov/
 # Environment & Secrets
 .env
 *.local
+*.db
+scratch/
 
 # SKEPTID data & models
 data/raw/

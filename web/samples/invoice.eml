@@ -1,0 +1,8 @@
+From: billing@paypa1.example
+Reply-To: help@other.example
+To: finance@example.com
+Subject: Invoice overdue
+Message-ID: <not-a-real-id>
+Authentication-Results: none
+
+Please pay the attached invoice today. Use the payment page to avoid suspension of the account.

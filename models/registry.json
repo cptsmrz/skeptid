@@ -2,9 +2,9 @@
   "models": {
     "text_v1": {
       "modality": "text",
-      "evaluated_at": "2026-10-22T04:45:10.927731+00:00",
-      "holdout_version": "holdout_v1",
-      "holdout_samples": 1748,
+      "evaluated_at": "2026-10-22T06:48:09.213419+00:00",
+      "holdout_version": "holdout_v2",
+      "holdout_samples": 2338,
       "coverage": [
         "bullying",
         "phishing",
@@ -13,95 +13,1061 @@
         "threat"
       ],
       "metrics": {
-        "accuracy": 0.9245,
-        "macro_f1": 0.908,
+        "accuracy": 0.8922,
+        "macro_f1": 0.8879,
         "per_class": {
           "bullying": {
-            "precision": 0.9359,
-            "recall": 0.8723,
-            "f1_score": 0.903,
+            "precision": 0.8368,
+            "recall": 0.8076,
+            "f1_score": 0.8219,
             "support": 603
           },
           "phishing": {
-            "precision": 0.9966,
-            "recall": 0.9833,
-            "f1_score": 0.9899,
+            "precision": 0.9663,
+            "recall": 0.9567,
+            "f1_score": 0.9615,
             "support": 300
           },
           "safe": {
-            "precision": 0.9014,
-            "recall": 0.9586,
-            "f1_score": 0.9291,
-            "support": 677
+            "precision": 0.903,
+            "recall": 0.9179,
+            "f1_score": 0.9104,
+            "support": 1267
           },
           "spam": {
-            "precision": 0.9882,
-            "recall": 0.875,
-            "f1_score": 0.9282,
+            "precision": 0.9775,
+            "recall": 0.9062,
+            "f1_score": 0.9405,
             "support": 96
           },
           "threat": {
-            "precision": 0.7294,
+            "precision": 0.7561,
             "recall": 0.8611,
-            "f1_score": 0.7898,
+            "f1_score": 0.8052,
             "support": 72
           }
         },
         "confusion_matrix": {
           "bullying": {
-            "bullying": 526,
-            "phishing": 1,
-            "safe": 57,
+            "bullying": 487,
+            "phishing": 0,
+            "safe": 100,
             "spam": 0,
-            "threat": 19
+            "threat": 16
           },
           "phishing": {
-            "bullying": 1,
-            "phishing": 295,
-            "safe": 4,
+            "bullying": 0,
+            "phishing": 287,
+            "safe": 13,
             "spam": 0,
             "threat": 0
           },
           "safe": {
-            "bullying": 23,
-            "phishing": 0,
-            "safe": 649,
-            "spam": 1,
+            "bullying": 88,
+            "phishing": 10,
+            "safe": 1163,
+            "spam": 2,
             "threat": 4
           },
           "spam": {
-            "bullying": 3,
+            "bullying": 0,
             "phishing": 0,
             "safe": 9,
-            "spam": 84,
+            "spam": 87,
             "threat": 0
           },
           "threat": {
-            "bullying": 9,
+            "bullying": 7,
             "phishing": 0,
-            "safe": 1,
+            "safe": 3,
             "spam": 0,
             "threat": 62
           }
         }
       },
+      "probe_20_email": {
+        "correct": 17,
+        "total": 20,
+        "accuracy": 0.85,
+        "details": [
+          {
+            "id": "leg_01",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9661,
+            "correct": true
+          },
+          {
+            "id": "leg_02",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.8288,
+            "correct": true
+          },
+          {
+            "id": "leg_03",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.908,
+            "correct": true
+          },
+          {
+            "id": "leg_04",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.482,
+            "correct": true
+          },
+          {
+            "id": "leg_05",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9778,
+            "correct": true
+          },
+          {
+            "id": "leg_06",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9509,
+            "correct": true
+          },
+          {
+            "id": "leg_07",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.8366,
+            "correct": true
+          },
+          {
+            "id": "leg_08",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9213,
+            "correct": true
+          },
+          {
+            "id": "leg_09",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9048,
+            "correct": true
+          },
+          {
+            "id": "leg_10",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.6624,
+            "correct": true
+          },
+          {
+            "id": "phi_01",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.847,
+            "correct": true
+          },
+          {
+            "id": "phi_02",
+            "truth": "phishing",
+            "predicted": "spam",
+            "confidence": 0.7256,
+            "correct": false
+          },
+          {
+            "id": "phi_03",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.7101,
+            "correct": true
+          },
+          {
+            "id": "phi_04",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.7007,
+            "correct": true
+          },
+          {
+            "id": "phi_05",
+            "truth": "phishing",
+            "predicted": "spam",
+            "confidence": 0.4965,
+            "correct": false
+          },
+          {
+            "id": "phi_06",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.4325,
+            "correct": true
+          },
+          {
+            "id": "phi_07",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.5711,
+            "correct": true
+          },
+          {
+            "id": "phi_08",
+            "truth": "phishing",
+            "predicted": "spam",
+            "confidence": 0.425,
+            "correct": false
+          },
+          {
+            "id": "phi_09",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.8405,
+            "correct": true
+          },
+          {
+            "id": "phi_10",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.4226,
+            "correct": true
+          }
+        ]
+      },
       "missing_classes": [],
-      "gate_met": true,
-      "gate_reasons": []
+      "gate_met": false,
+      "gate_reasons": [
+        "Macro-F1 0.8879 < 0.90"
+      ]
+    },
+    "detoxify_textshield_v1": {
+      "provider_id": "opensource",
+      "modality": "text",
+      "model_version": "detoxify_textshield_v1",
+      "evaluated_at": "2026-10-22T07:05:01.555505+00:00",
+      "holdout_version": "holdout_v2_subset500",
+      "holdout_samples": 500,
+      "coverage": [
+        "safe",
+        "phishing",
+        "spam",
+        "threat",
+        "bullying"
+      ],
+      "metrics": {
+        "accuracy": 0.66,
+        "macro_f1": 0.4498,
+        "per_class": {
+          "bullying": {
+            "precision": 0.798,
+            "recall": 0.6124,
+            "f1_score": 0.693,
+            "support": 129
+          },
+          "phishing": {
+            "precision": 0.3429,
+            "recall": 0.375,
+            "f1_score": 0.3582,
+            "support": 64
+          },
+          "safe": {
+            "precision": 0.8306,
+            "recall": 0.7601,
+            "f1_score": 0.7938,
+            "support": 271
+          },
+          "spam": {
+            "precision": 0.253,
+            "recall": 1.0,
+            "f1_score": 0.4038,
+            "support": 21
+          },
+          "threat": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1_score": 0.0,
+            "support": 15
+          }
+        },
+        "confusion_matrix": {
+          "bullying": {
+            "bullying": 79,
+            "phishing": 2,
+            "safe": 33,
+            "spam": 15,
+            "threat": 0
+          },
+          "phishing": {
+            "bullying": 0,
+            "phishing": 24,
+            "safe": 9,
+            "spam": 31,
+            "threat": 0
+          },
+          "safe": {
+            "bullying": 6,
+            "phishing": 44,
+            "safe": 206,
+            "spam": 15,
+            "threat": 0
+          },
+          "spam": {
+            "bullying": 0,
+            "phishing": 0,
+            "safe": 0,
+            "spam": 21,
+            "threat": 0
+          },
+          "threat": {
+            "bullying": 14,
+            "phishing": 0,
+            "safe": 0,
+            "spam": 1,
+            "threat": 0
+          }
+        }
+      },
+      "probe_20_email": {
+        "correct": 16,
+        "total": 20,
+        "accuracy": 0.8,
+        "details": [
+          {
+            "id": "leg_01",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9972,
+            "correct": true,
+            "risk": 0.0028,
+            "scores": {
+              "safe": 0.9972,
+              "phishing": 0.0021,
+              "spam": 0.0001,
+              "threat": 0.0001,
+              "bullying": 0.0005
+            }
+          },
+          {
+            "id": "leg_02",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9769,
+            "correct": true,
+            "risk": 0.0231,
+            "scores": {
+              "safe": 0.9769,
+              "phishing": 0.0218,
+              "spam": 0.0006,
+              "threat": 0.0001,
+              "bullying": 0.0006
+            }
+          },
+          {
+            "id": "leg_03",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9981,
+            "correct": true,
+            "risk": 0.0019,
+            "scores": {
+              "safe": 0.9981,
+              "phishing": 0.0009,
+              "spam": 0.0002,
+              "threat": 0.0001,
+              "bullying": 0.0007
+            }
+          },
+          {
+            "id": "leg_04",
+            "truth": "safe",
+            "predicted": "phishing",
+            "confidence": 0.9542,
+            "correct": false,
+            "risk": 0.9737,
+            "scores": {
+              "safe": 0.0263,
+              "phishing": 0.9542,
+              "spam": 0.0188,
+              "threat": 0.0001,
+              "bullying": 0.0006
+            }
+          },
+          {
+            "id": "leg_05",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.996,
+            "correct": true,
+            "risk": 0.004,
+            "scores": {
+              "safe": 0.996,
+              "phishing": 0.0026,
+              "spam": 0.0008,
+              "threat": 0.0001,
+              "bullying": 0.0005
+            }
+          },
+          {
+            "id": "leg_06",
+            "truth": "safe",
+            "predicted": "spam",
+            "confidence": 0.9992,
+            "correct": false,
+            "risk": 0.9998,
+            "scores": {
+              "safe": 0.0002,
+              "phishing": 0.0,
+              "spam": 0.9992,
+              "threat": 0.0001,
+              "bullying": 0.0005
+            }
+          },
+          {
+            "id": "leg_07",
+            "truth": "safe",
+            "predicted": "phishing",
+            "confidence": 0.999,
+            "correct": false,
+            "risk": 0.9999,
+            "scores": {
+              "safe": 0.0001,
+              "phishing": 0.999,
+              "spam": 0.0,
+              "threat": 0.0001,
+              "bullying": 0.0008
+            }
+          },
+          {
+            "id": "leg_08",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9969,
+            "correct": true,
+            "risk": 0.0031,
+            "scores": {
+              "safe": 0.9969,
+              "phishing": 0.0017,
+              "spam": 0.0007,
+              "threat": 0.0001,
+              "bullying": 0.0006
+            }
+          },
+          {
+            "id": "leg_09",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9759,
+            "correct": true,
+            "risk": 0.0241,
+            "scores": {
+              "safe": 0.9759,
+              "phishing": 0.0231,
+              "spam": 0.0003,
+              "threat": 0.0001,
+              "bullying": 0.0006
+            }
+          },
+          {
+            "id": "leg_10",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9978,
+            "correct": true,
+            "risk": 0.0022,
+            "scores": {
+              "safe": 0.9978,
+              "phishing": 0.0013,
+              "spam": 0.0003,
+              "threat": 0.0001,
+              "bullying": 0.0005
+            }
+          },
+          {
+            "id": "phi_01",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9991,
+            "correct": true,
+            "risk": 1.0,
+            "scores": {
+              "safe": 0.0,
+              "phishing": 0.9991,
+              "spam": 0.0,
+              "threat": 0.0001,
+              "bullying": 0.0008
+            }
+          },
+          {
+            "id": "phi_02",
+            "truth": "phishing",
+            "predicted": "spam",
+            "confidence": 0.9989,
+            "correct": false,
+            "risk": 0.9998,
+            "scores": {
+              "safe": 0.0002,
+              "phishing": 0.0,
+              "spam": 0.9989,
+              "threat": 0.0001,
+              "bullying": 0.0008
+            }
+          },
+          {
+            "id": "phi_03",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9991,
+            "correct": true,
+            "risk": 0.9999,
+            "scores": {
+              "safe": 0.0001,
+              "phishing": 0.9991,
+              "spam": 0.0,
+              "threat": 0.0001,
+              "bullying": 0.0007
+            }
+          },
+          {
+            "id": "phi_04",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9973,
+            "correct": true,
+            "risk": 0.9983,
+            "scores": {
+              "safe": 0.0017,
+              "phishing": 0.9973,
+              "spam": 0.0003,
+              "threat": 0.0001,
+              "bullying": 0.0006
+            }
+          },
+          {
+            "id": "phi_05",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9992,
+            "correct": true,
+            "risk": 0.9999,
+            "scores": {
+              "safe": 0.0001,
+              "phishing": 0.9992,
+              "spam": 0.0,
+              "threat": 0.0001,
+              "bullying": 0.0006
+            }
+          },
+          {
+            "id": "phi_06",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9989,
+            "correct": true,
+            "risk": 1.0,
+            "scores": {
+              "safe": 0.0,
+              "phishing": 0.9989,
+              "spam": 0.0,
+              "threat": 0.0002,
+              "bullying": 0.0009
+            }
+          },
+          {
+            "id": "phi_07",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9978,
+            "correct": true,
+            "risk": 0.9988,
+            "scores": {
+              "safe": 0.0012,
+              "phishing": 0.9978,
+              "spam": 0.0002,
+              "threat": 0.0001,
+              "bullying": 0.0007
+            }
+          },
+          {
+            "id": "phi_08",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9993,
+            "correct": true,
+            "risk": 1.0,
+            "scores": {
+              "safe": 0.0,
+              "phishing": 0.9993,
+              "spam": 0.0,
+              "threat": 0.0001,
+              "bullying": 0.0006
+            }
+          },
+          {
+            "id": "phi_09",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9992,
+            "correct": true,
+            "risk": 1.0,
+            "scores": {
+              "safe": 0.0,
+              "phishing": 0.9992,
+              "spam": 0.0,
+              "threat": 0.0001,
+              "bullying": 0.0007
+            }
+          },
+          {
+            "id": "phi_10",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.4717,
+            "correct": true,
+            "risk": 0.7336,
+            "scores": {
+              "safe": 0.2664,
+              "phishing": 0.4717,
+              "spam": 0.2614,
+              "threat": 0.0001,
+              "bullying": 0.0004
+            }
+          }
+        ]
+      }
     }
   },
-  "promotions": [],
+  "promotions": [
+    {
+      "modality": "text",
+      "promoted_version": "text_v1",
+      "previous_primary": "opensource",
+      "new_primary": "own",
+      "promoted_at": "2026-10-22T07:35:00+00:00",
+      "rule": "champion_challenger_below_promotion_gate",
+      "validated": false,
+      "numbers": {
+        "own_text_v1": {
+          "holdout_macro_f1": 0.8879,
+          "holdout_accuracy": 0.8922,
+          "probe_accuracy": 0.85,
+          "probe_false_positives": 0
+        },
+        "opensource_p2": {
+          "holdout_macro_f1": 0.4498,
+          "holdout_accuracy": 0.66,
+          "probe_accuracy": 0.80,
+          "probe_false_positives": 3
+        }
+      },
+      "reason": "Neither provider cleared the 0.90 Macro-F1 promotion gate. Under SPEC.md section 5 champion/challenger rule, 'own' (text_v1) is selected as primary because it strongly outperformed P2 on the frozen holdout_v2 (Macro-F1 0.8879 vs 0.4498, accuracy 89.2% vs 66.0%) and on the 20-email probe (85% vs 80%, with 0 false positives on legitimate emails vs 3 false alarms for P2). Verdicts carry validated=false ('below promotion gate')."
+    }
+  ],
   "holdout": {
-    "version": "holdout_v1",
-    "filename": "text_holdout_v1.csv",
-    "sha256": "e626d9012e68f6ba9f7b4f11772f86257dc19c26d0787f2b625071328406b26a",
+    "version": "holdout_v2",
+    "filename": "text_holdout_v2.csv",
+    "sha256": "d28f874bf7fead718ef3d0ffd9cb7812ebf47edab7e992ae0b5fbd344f728b1c",
     "seed": 42,
     "sources": [
-      "cyberbullying_tweets",
+      "hf_cyberbullying",
+      "hf_phishing",
       "jigsaw_toxic",
-      "nazario_phishing",
       "sms_spam_uci"
     ],
-    "samples": 1748
+    "samples": 2338
+  },
+  "providers": {
+    "opensource_text": {
+      "provider_id": "opensource",
+      "modality": "text",
+      "model_version": "detoxify_textshield_v1",
+      "evaluated_at": "2026-10-22T07:05:01.555505+00:00",
+      "holdout_version": "holdout_v2_subset500",
+      "holdout_samples": 500,
+      "coverage": [
+        "safe",
+        "phishing",
+        "spam",
+        "threat",
+        "bullying"
+      ],
+      "metrics": {
+        "accuracy": 0.66,
+        "macro_f1": 0.4498,
+        "per_class": {
+          "bullying": {
+            "precision": 0.798,
+            "recall": 0.6124,
+            "f1_score": 0.693,
+            "support": 129
+          },
+          "phishing": {
+            "precision": 0.3429,
+            "recall": 0.375,
+            "f1_score": 0.3582,
+            "support": 64
+          },
+          "safe": {
+            "precision": 0.8306,
+            "recall": 0.7601,
+            "f1_score": 0.7938,
+            "support": 271
+          },
+          "spam": {
+            "precision": 0.253,
+            "recall": 1.0,
+            "f1_score": 0.4038,
+            "support": 21
+          },
+          "threat": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1_score": 0.0,
+            "support": 15
+          }
+        },
+        "confusion_matrix": {
+          "bullying": {
+            "bullying": 79,
+            "phishing": 2,
+            "safe": 33,
+            "spam": 15,
+            "threat": 0
+          },
+          "phishing": {
+            "bullying": 0,
+            "phishing": 24,
+            "safe": 9,
+            "spam": 31,
+            "threat": 0
+          },
+          "safe": {
+            "bullying": 6,
+            "phishing": 44,
+            "safe": 206,
+            "spam": 15,
+            "threat": 0
+          },
+          "spam": {
+            "bullying": 0,
+            "phishing": 0,
+            "safe": 0,
+            "spam": 21,
+            "threat": 0
+          },
+          "threat": {
+            "bullying": 14,
+            "phishing": 0,
+            "safe": 0,
+            "spam": 1,
+            "threat": 0
+          }
+        }
+      },
+      "probe_20_email": {
+        "correct": 16,
+        "total": 20,
+        "accuracy": 0.8,
+        "details": [
+          {
+            "id": "leg_01",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9972,
+            "correct": true,
+            "risk": 0.0028,
+            "scores": {
+              "safe": 0.9972,
+              "phishing": 0.0021,
+              "spam": 0.0001,
+              "threat": 0.0001,
+              "bullying": 0.0005
+            }
+          },
+          {
+            "id": "leg_02",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9769,
+            "correct": true,
+            "risk": 0.0231,
+            "scores": {
+              "safe": 0.9769,
+              "phishing": 0.0218,
+              "spam": 0.0006,
+              "threat": 0.0001,
+              "bullying": 0.0006
+            }
+          },
+          {
+            "id": "leg_03",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9981,
+            "correct": true,
+            "risk": 0.0019,
+            "scores": {
+              "safe": 0.9981,
+              "phishing": 0.0009,
+              "spam": 0.0002,
+              "threat": 0.0001,
+              "bullying": 0.0007
+            }
+          },
+          {
+            "id": "leg_04",
+            "truth": "safe",
+            "predicted": "phishing",
+            "confidence": 0.9542,
+            "correct": false,
+            "risk": 0.9737,
+            "scores": {
+              "safe": 0.0263,
+              "phishing": 0.9542,
+              "spam": 0.0188,
+              "threat": 0.0001,
+              "bullying": 0.0006
+            }
+          },
+          {
+            "id": "leg_05",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.996,
+            "correct": true,
+            "risk": 0.004,
+            "scores": {
+              "safe": 0.996,
+              "phishing": 0.0026,
+              "spam": 0.0008,
+              "threat": 0.0001,
+              "bullying": 0.0005
+            }
+          },
+          {
+            "id": "leg_06",
+            "truth": "safe",
+            "predicted": "spam",
+            "confidence": 0.9992,
+            "correct": false,
+            "risk": 0.9998,
+            "scores": {
+              "safe": 0.0002,
+              "phishing": 0.0,
+              "spam": 0.9992,
+              "threat": 0.0001,
+              "bullying": 0.0005
+            }
+          },
+          {
+            "id": "leg_07",
+            "truth": "safe",
+            "predicted": "phishing",
+            "confidence": 0.999,
+            "correct": false,
+            "risk": 0.9999,
+            "scores": {
+              "safe": 0.0001,
+              "phishing": 0.999,
+              "spam": 0.0,
+              "threat": 0.0001,
+              "bullying": 0.0008
+            }
+          },
+          {
+            "id": "leg_08",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9969,
+            "correct": true,
+            "risk": 0.0031,
+            "scores": {
+              "safe": 0.9969,
+              "phishing": 0.0017,
+              "spam": 0.0007,
+              "threat": 0.0001,
+              "bullying": 0.0006
+            }
+          },
+          {
+            "id": "leg_09",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9759,
+            "correct": true,
+            "risk": 0.0241,
+            "scores": {
+              "safe": 0.9759,
+              "phishing": 0.0231,
+              "spam": 0.0003,
+              "threat": 0.0001,
+              "bullying": 0.0006
+            }
+          },
+          {
+            "id": "leg_10",
+            "truth": "safe",
+            "predicted": "safe",
+            "confidence": 0.9978,
+            "correct": true,
+            "risk": 0.0022,
+            "scores": {
+              "safe": 0.9978,
+              "phishing": 0.0013,
+              "spam": 0.0003,
+              "threat": 0.0001,
+              "bullying": 0.0005
+            }
+          },
+          {
+            "id": "phi_01",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9991,
+            "correct": true,
+            "risk": 1.0,
+            "scores": {
+              "safe": 0.0,
+              "phishing": 0.9991,
+              "spam": 0.0,
+              "threat": 0.0001,
+              "bullying": 0.0008
+            }
+          },
+          {
+            "id": "phi_02",
+            "truth": "phishing",
+            "predicted": "spam",
+            "confidence": 0.9989,
+            "correct": false,
+            "risk": 0.9998,
+            "scores": {
+              "safe": 0.0002,
+              "phishing": 0.0,
+              "spam": 0.9989,
+              "threat": 0.0001,
+              "bullying": 0.0008
+            }
+          },
+          {
+            "id": "phi_03",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9991,
+            "correct": true,
+            "risk": 0.9999,
+            "scores": {
+              "safe": 0.0001,
+              "phishing": 0.9991,
+              "spam": 0.0,
+              "threat": 0.0001,
+              "bullying": 0.0007
+            }
+          },
+          {
+            "id": "phi_04",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9973,
+            "correct": true,
+            "risk": 0.9983,
+            "scores": {
+              "safe": 0.0017,
+              "phishing": 0.9973,
+              "spam": 0.0003,
+              "threat": 0.0001,
+              "bullying": 0.0006
+            }
+          },
+          {
+            "id": "phi_05",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9992,
+            "correct": true,
+            "risk": 0.9999,
+            "scores": {
+              "safe": 0.0001,
+              "phishing": 0.9992,
+              "spam": 0.0,
+              "threat": 0.0001,
+              "bullying": 0.0006
+            }
+          },
+          {
+            "id": "phi_06",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9989,
+            "correct": true,
+            "risk": 1.0,
+            "scores": {
+              "safe": 0.0,
+              "phishing": 0.9989,
+              "spam": 0.0,
+              "threat": 0.0002,
+              "bullying": 0.0009
+            }
+          },
+          {
+            "id": "phi_07",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9978,
+            "correct": true,
+            "risk": 0.9988,
+            "scores": {
+              "safe": 0.0012,
+              "phishing": 0.9978,
+              "spam": 0.0002,
+              "threat": 0.0001,
+              "bullying": 0.0007
+            }
+          },
+          {
+            "id": "phi_08",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9993,
+            "correct": true,
+            "risk": 1.0,
+            "scores": {
+              "safe": 0.0,
+              "phishing": 0.9993,
+              "spam": 0.0,
+              "threat": 0.0001,
+              "bullying": 0.0006
+            }
+          },
+          {
+            "id": "phi_09",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.9992,
+            "correct": true,
+            "risk": 1.0,
+            "scores": {
+              "safe": 0.0,
+              "phishing": 0.9992,
+              "spam": 0.0,
+              "threat": 0.0001,
+              "bullying": 0.0007
+            }
+          },
+          {
+            "id": "phi_10",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "confidence": 0.4717,
+            "correct": true,
+            "risk": 0.7336,
+            "scores": {
+              "safe": 0.2664,
+              "phishing": 0.4717,
+              "spam": 0.2614,
+              "threat": 0.0001,
+              "bullying": 0.0004
+            }
+          }
+        ]
+      }
+    }
   }
 }

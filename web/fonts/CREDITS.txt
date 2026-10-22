@@ -1,0 +1,10 @@
+IBM Plex Serif, IBM Plex Sans, and IBM Plex Mono
+Copyright © 2017 IBM Corp. with Reserved Font Name "Plex"
+Licensed under the SIL Open Font License, Version 1.1.
+See OFL-IBM-Plex.txt in this directory.
+
+Files:
+- ibm-plex-serif-latin-400-normal.woff2 (complete Regular from IBM/plex)
+- ibm-plex-serif-latin-500-normal.woff2 (complete Medium from IBM/plex)
+- ibm-plex-sans-latin-400-normal.woff2 / ibm-plex-sans-latin-500-normal.woff2 (latin subset)
+- ibm-plex-mono-latin-400-normal.woff2 (latin subset)

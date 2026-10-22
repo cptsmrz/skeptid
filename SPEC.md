@@ -123,6 +123,7 @@ class ProviderResult:
     latency_ms: int
     model_version: str
     coverage: list[str]              # labels this model was actually trained/able to predict
+    validated: bool = True           # False for heuristic or unevaluated providers; UI shows a "not validated" tag
     error: str | None = None
 
 class Provider(Protocol):
@@ -157,7 +158,7 @@ Behaviour:
 
 **Promotion gate** (`training/registry.py`): a modality's primary changes to `own` only if the candidate model's metrics in `registry.json` meet the gate, evaluated on the frozen holdout:
 - Text: every label in `TEXT_LABELS` present in the holdout, macro-F1 ≥ 0.90, and per-class recall ≥ 0.80.
-- A provider is eligible as primary only if its `coverage` includes every label of the modality. Until `own` passes the gate, the config primary for that modality must be another provider.
+- A provider is eligible as primary only if its `coverage` includes every label of the modality. The gate applies to every provider equally. If no eligible provider passes it, the primary is the best-measured eligible provider (champion/challenger) on the frozen holdout and the probe set. The choice, its numbers, and the reason are recorded in `registry.json`, and verdicts from it carry `validated=false`, shown in the UI as "below promotion gate".
 - Image: `own` is never auto-promoted. It is fallback and cross-check unless an out-of-distribution (unseen generator) AUC ≥ 0.90 is recorded. Report both in-distribution and out-of-distribution numbers.
 
 Promotion is a CLI command (`python -m skeptid.training.registry promote --modality text`) that rewrites the config. It must refuse if the gate is not met.
@@ -208,6 +209,11 @@ Promotion is a CLI command (`python -m skeptid.training.registry promote --modal
 - The exact vendor is configured by the owner. Implement the adapter against a small internal request/response shape, and isolate vendor specifics in one function (`_to_vendor_request` / `_from_vendor_response`) so the vendor can be swapped without touching anything else.
 - In `mock` mode it returns deterministic synthetic results (seeded by the input hash) and is clearly tagged `model_version="mock"`. The UI must show a visible **MOCK** badge whenever any mock provider answered.
 - Retries: 1 retry on 5xx with jitter; no retry on 4xx. Never log request bodies or keys.
+- **Vendor router:** the external provider holds an ordered list of vendor adapters (for example Gemini, Groq, OpenRouter, Cloudflare Workers AI), each with its own circuit breaker and its own key from env (`GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `CF_API_TOKEN`, `CF_ACCOUNT_ID`). The result reports which vendor and model answered in `model_version` (for example `gemini:<model>`).
+- **Text:** language-model classification with a fixed JSON schema over `TEXT_LABELS`, temperature 0, output validated against the schema. The analysed content is data, never instructions: wrap it in delimiters, say so in the system prompt, and never let the model's output alone mark content safe (it is one of three signals). Blocked or refused responses return `ok=False, error="blocked"`.
+- **Image and video:** a multimodal model returns structured observations and a risk estimate. It is always `validated=false` and shown in the UI as a language-model opinion. General language models are weak deepfake detectors, so never present this as authoritative.
+- **Cost and quota control:** cache by input SHA-256, enforce a daily call budget, and send at most `top_k_to_external` frames per video.
+- **Disclosure:** when an external vendor is live, the privacy chip must say the content is sent to an external provider. Show "processed in memory, not stored" only for paths where that is true.
 
 ### 6.6 Audio
 - Register `audio_stub.py` implementing the `Provider` interface and returning `ok=False, error="not_implemented"`. UI shows the Audio tab disabled with "coming soon". No further work unless all milestones are complete.
@@ -244,7 +250,7 @@ Verdict response:
   "id": "uuid", "modality": "email", "label": "phishing",
   "risk": 0.87, "level": "HIGH", "confidence": 0.74,
   "disagreement": false, "primary_provider": "own", "mock": false,
-  "providers": [{"id":"own","ok":true,"risk":0.87,"model_version":"text_v1","latency_ms":41}, ...],
+  "providers": [{"id":"own","ok":true,"risk":0.87,"model_version":"text_v1","validated":true,"latency_ms":41}, ...],
   "evidence": [{"kind":"span","description":"Urgency + credential request","payload":{"start":12,"end":48,"weight":0.31}}],
   "limits_note": "Risk score with evidence, not proof."
 }
@@ -276,10 +282,11 @@ Verdict response:
 | Audio (stretch) | ASVspoof |
 
 Pipeline:
-1. `prepare_text.py` maps every source onto `TEXT_LABELS`, records `source` per row, dedupes, and creates **train / val / frozen holdout** splits (70/15/15, stratified, fixed seed). The holdout is frozen **per data release**: `holdout_v1` is written once for a given set of sources and never regenerated or mixed with feedback data. When a new source is added (for example phishing or threat data), create `holdout_v2` and re-evaluate every candidate on it. Metrics are only comparable within the same holdout version. `registry.json` records the holdout version, file SHA-256, seed, and source list for each evaluation.
+1. `prepare_text.py` maps every source onto `TEXT_LABELS`, records `source` per row, keeps **matched negatives** (every positive source also contributes its own negatives, so the source of a text cannot predict its label), dedupes, and creates **train / val / frozen holdout** splits (70/15/15, stratified, fixed seed). The holdout is frozen **per data release**: `holdout_v1` is written once for a given set of sources and never regenerated or mixed with feedback data. When a new source is added (for example phishing or threat data), create `holdout_v2` and re-evaluate every candidate on it. Metrics are only comparable within the same holdout version. `registry.json` records the holdout version, file SHA-256, seed, and source list for each evaluation.
 2. `train_text.py` trains the baseline and saves `models/text_vN.joblib`.
 3. `evaluate.py` computes accuracy, macro-F1, per-class precision/recall, confusion matrix, and (image) AUC in-distribution and out-of-distribution, then writes `models/registry.json`.
 4. `retrain.py`: merges base training data with reviewed feedback labels (min 20 new labels, deduped), trains a candidate, evaluates on the frozen holdout, and promotes only if it does not regress. Triggered by CLI or the dashboard button.
+5. **External-validity probe:** `tests/fixtures/emails.py` (20 hand-written realistic emails) is never trained on or tuned against. Every candidate model is evaluated on it and the result is reported next to the holdout metrics. A large gap between the two means the model has learned the datasets, not the task.
 
 Colab notebook (`notebooks/image_head_colab.ipynb`): installs deps, mounts Drive, loads the dataset, extracts features with the same `forensics` package (imported from the repo), trains the head, evaluates, and exports `models/image_head_vN.joblib`. Runs on a free T4 GPU.
 

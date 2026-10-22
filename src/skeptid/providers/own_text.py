@@ -216,4 +216,5 @@ class OwnTextProvider(Provider):
             model_version=version,
             coverage=list(classes),
             error=None,
+            validated=False,
         )

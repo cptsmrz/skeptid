@@ -41,6 +41,7 @@ class ProviderResult:
     model_version: str
     coverage: list[str] = field(default_factory=list)
     error: str | None = None
+    validated: bool | None = None  # None = not reported; False = heuristic baseline, no labelled eval
 
 @dataclass
 class AnalysisInput:
@@ -66,3 +67,4 @@ class Verdict:
     providers: list[dict[str, Any]]
     evidence: list[Evidence]
     limits_note: str = "Risk score with evidence, not proof."
+    validated: bool = True

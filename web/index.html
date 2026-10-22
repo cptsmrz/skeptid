@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SKEPTID — evidence desk</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#message-input">Skip to message intake</a>
+  <div id="app">
+    <header class="mast">
+      <div class="brand">
+        <h1>Skeptid</h1>
+        <p>Evidence desk</p>
+      </div>
+      <div class="mast-tools">
+        <nav class="nav" aria-label="Desk sections">
+          <a href="#desk" id="nav-desk" aria-current="page">Desk</a>
+          <a href="#records" id="nav-records">Records</a>
+          <span class="is-disabled" title="Audio is not implemented">Audio, coming soon</span>
+        </nav>
+        <span id="mock-chip" class="chip mock" hidden>Mock</span>
+        <button type="button" id="theme-toggle" aria-pressed="false">Graphite</button>
+      </div>
+    </header>
+
+    <main>
+      <div id="view-desk">
+        <div class="desk-intakes">
+          <section class="lane is-empty" id="message-lane" data-lane="message">
+            <div class="tray" id="message-tray">
+              <div class="scan" aria-hidden="true"></div>
+              <div class="tray-label">Message intake</div>
+              <div class="tray-body">
+                <label class="muted" for="message-input">Paste a message, or drop a .eml or .txt file</label>
+                <textarea id="message-input" maxlength="20000" rows="6" placeholder="Paste text here"></textarea>
+                <div class="row">
+                  <button type="button" id="message-choose">Choose file</button>
+                  <input id="message-file" type="file" accept=".eml,.txt,text/plain,message/rfc822" hidden>
+                  <span class="file-name mono" id="message-filename"></span>
+                  <button type="button" id="message-analyze">Analyse</button>
+                </div>
+                <div class="progress" aria-hidden="true"><span></span></div>
+                <div class="examples" id="message-examples" hidden></div>
+                <span class="chip privacy">Processed in memory, not stored</span>
+              </div>
+            </div>
+            <div class="glass panel-empty" id="message-empty">
+              <p>Drop a file or paste a message.</p>
+              <p class="muted">This lane scores text and email. It does not read the media tray.</p>
+            </div>
+            <div class="glass panel-load" id="message-load">
+              <p id="message-step">Checking body text</p>
+              <div class="skel" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            </div>
+            <div class="glass panel-fail" id="message-fail" role="alert"></div>
+            <div class="section history-wrap" id="message-history-wrap" hidden>
+              <h3>History</h3>
+              <ul class="history" id="message-history"></ul>
+            </div>
+          </section>
+
+          <section class="lane is-empty" id="media-lane" data-lane="media">
+            <div class="tray" id="media-tray">
+              <div class="scan" aria-hidden="true"></div>
+              <div class="tray-label">Media intake</div>
+              <div class="tray-body">
+                <p class="muted">Drop an image or a video. This tray keeps its own case file.</p>
+                <div class="row">
+                  <button type="button" id="media-choose">Choose file</button>
+                  <input id="media-file" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,.jpg,.jpeg,.png,.webp,.mp4,.webm" hidden>
+                  <span class="file-name mono" id="media-filename"></span>
+                  <button type="button" id="media-analyze">Analyse</button>
+                </div>
+                <div class="progress" aria-hidden="true"><span></span></div>
+                <div class="examples" id="media-examples" hidden></div>
+                <span class="chip privacy">Processed in memory, not stored</span>
+              </div>
+            </div>
+            <div class="glass panel-empty" id="media-empty">
+              <p>Drop an image or a video.</p>
+              <p class="muted">This lane scores images and video. It does not read the message tray.</p>
+            </div>
+            <div class="glass panel-load" id="media-load">
+              <p id="media-step">Scoring frames</p>
+              <div class="skel" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            </div>
+            <div class="glass panel-fail" id="media-fail" role="alert"></div>
+            <div class="section history-wrap" id="media-history-wrap" hidden>
+              <h3>History</h3>
+              <ul class="history" id="media-history"></ul>
+            </div>
+          </section>
+        </div>
+
+        <div class="desk-results">
+          <div class="panel-result" id="message-result"></div>
+          <div class="panel-result" id="media-result"></div>
+        </div>
+      </div>
+
+      <section id="view-records" hidden>
+        <div class="records-solid" id="records-body">
+          <h2>Records</h2>
+          <p class="muted">Metrics come from the model registry. Nothing on this page is a sample score.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="offsets.js"></script>
+  <script src="fixtures.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

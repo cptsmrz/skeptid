@@ -25,6 +25,7 @@ class ProviderSummarySchema(BaseModel):
     model_version: str
     latency_ms: int
     error: str | None = None
+    validated: bool | None = None
 
 class VerdictResponse(BaseModel):
     """Unified verdict response format."""
@@ -40,6 +41,7 @@ class VerdictResponse(BaseModel):
     providers: list[ProviderSummarySchema]
     evidence: list[EvidenceSchema]
     limits_note: str = "Risk score with evidence, not proof."
+    validated: bool = True
 
 class FeedbackRequest(BaseModel):
     """User feedback on analysis verdict."""

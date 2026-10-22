@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -11,6 +12,8 @@ from skeptid.api.routes import router
 from skeptid.api.security import SecurityHeadersMiddleware
 from skeptid.core.config import SkeptidConfig, load_config
 from skeptid.core.orchestrator import Orchestrator
+
+load_dotenv()
 
 
 def create_app(config: SkeptidConfig | None = None) -> FastAPI:

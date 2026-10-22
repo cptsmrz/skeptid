@@ -24,23 +24,24 @@ SMS_SPAM_DIR = RAW_DIR / "sms_spam_collection"
 SMS_SPAM_FILE = SMS_SPAM_DIR / "SMSSpamCollection"
 
 
-def download_public_hf_datasets() -> None:
-    """Download public Hugging Face datasets (no login required) if raw files not present."""
+def download_public_hf_datasets(force: bool = False) -> None:
+    """Download public Hugging Face datasets (no login required) with matched negatives."""
     jigsaw_path = RAW_DIR / "jigsaw_toxic.csv"
-    phish_path = RAW_DIR / "nazario_phishing.csv"
+    phish_path = RAW_DIR / "hf_phishing.csv"
     cb_path = RAW_DIR / "cyberbullying_tweets.csv"
 
-    if jigsaw_path.exists() and phish_path.exists() and cb_path.exists():
+    if not force and jigsaw_path.exists() and phish_path.exists() and cb_path.exists():
         return
 
     try:
         import json
 
+        import pandas as pd
         from huggingface_hub import hf_hub_download
 
         RAW_DIR.mkdir(parents=True, exist_ok=True)
 
-        if not phish_path.exists():
+        if force or not phish_path.exists():
             try:
                 p_file = hf_hub_download(
                     "ealvaradob/phishing-dataset", "texts.json", repo_type="dataset"
@@ -48,16 +49,22 @@ def download_public_hf_datasets() -> None:
                 with open(p_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 phish_rows = [
-                    {"text": x["text"], "label": "phishing", "source": "hf_phishing"}
+                    {"text": x["text"].strip(), "label": "phishing", "source": "hf_phishing"}
                     for x in data
-                    if x.get("label") == 1
+                    if x.get("label") == 1 and x.get("text", "").strip()
                 ][:2000]
-                _write_csv(phish_path, phish_rows)
-                print(f"[prepare_text] Auto-downloaded HF phishing dataset: {len(phish_rows)} rows")
+                safe_rows = [
+                    {"text": x["text"].strip(), "label": "safe", "source": "hf_phishing"}
+                    for x in data
+                    if x.get("label") == 0 and x.get("text", "").strip()
+                ][:2000]
+                combined_phish = phish_rows + safe_rows
+                _write_csv(phish_path, combined_phish)
+                print(f"[prepare_text] Auto-downloaded HF phishing dataset: {len(phish_rows)} phishing, {len(safe_rows)} safe matched rows")
             except (OSError, RuntimeError, ValueError, KeyError) as e:
                 print(f"[prepare_text] Notice: could not auto-download HF phishing: {e}")
 
-        if not cb_path.exists():
+        if force or not cb_path.exists():
             try:
                 cb_file = hf_hub_download(
                     "AnikaBasu/CyberbullyingDataset",
@@ -67,18 +74,23 @@ def download_public_hf_datasets() -> None:
                 with open(cb_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 cb_rows = [
-                    {"tweet_text": x.get("instruction", ""), "label": "bullying", "source": "hf_cyberbullying"}
+                    {"text": x.get("instruction", "").strip(), "label": "bullying", "source": "hf_cyberbullying"}
                     for x in data
-                    if x.get("output") != "not_cyberbullying"
+                    if x.get("output") != "not_cyberbullying" and x.get("instruction", "").strip()
                 ]
-                _write_csv(cb_path, cb_rows)
-                print(f"[prepare_text] Auto-downloaded HF cyberbullying dataset: {len(cb_rows)} rows")
+                safe_cb_rows = [
+                    {"text": x.get("instruction", "").strip(), "label": "safe", "source": "hf_cyberbullying"}
+                    for x in data
+                    if x.get("output") == "not_cyberbullying" and x.get("instruction", "").strip()
+                ]
+                combined_cb = cb_rows + safe_cb_rows
+                _write_csv(cb_path, combined_cb)
+                print(f"[prepare_text] Auto-downloaded HF cyberbullying dataset: {len(cb_rows)} bullying, {len(safe_cb_rows)} safe matched rows")
             except (OSError, RuntimeError, ValueError, KeyError) as e:
                 print(f"[prepare_text] Notice: could not auto-download HF cyberbullying: {e}")
 
-        if not jigsaw_path.exists():
+        if force or not jigsaw_path.exists():
             try:
-                import pandas as pd
                 j_file = hf_hub_download(
                     "thesofakillers/jigsaw-toxic-comment-classification-challenge",
                     "train.csv",
@@ -87,9 +99,31 @@ def download_public_hf_datasets() -> None:
                 df_j = pd.read_csv(j_file)
                 threats = df_j[df_j["threat"] == 1]
                 toxic = df_j[(df_j["threat"] == 0) & ((df_j["toxic"] == 1) | (df_j["insult"] == 1))].head(1500)
-                subset = pd.concat([threats, toxic])
-                subset.to_csv(jigsaw_path, index=False)
-                print(f"[prepare_text] Auto-downloaded HF Jigsaw dataset: {len(subset)} rows")
+                benign = df_j[
+                    (df_j["toxic"] == 0)
+                    & (df_j["severe_toxic"] == 0)
+                    & (df_j["obscene"] == 0)
+                    & (df_j["threat"] == 0)
+                    & (df_j["insult"] == 0)
+                    & (df_j["identity_hate"] == 0)
+                ].head(1500)
+
+                j_rows: list[dict[str, str]] = []
+                for _, r in threats.iterrows():
+                    t = str(r.get("comment_text") or "").strip()
+                    if t:
+                        j_rows.append({"text": t, "label": "threat", "source": "jigsaw_toxic"})
+                for _, r in toxic.iterrows():
+                    t = str(r.get("comment_text") or "").strip()
+                    if t:
+                        j_rows.append({"text": t, "label": "bullying", "source": "jigsaw_toxic"})
+                for _, r in benign.iterrows():
+                    t = str(r.get("comment_text") or "").strip()
+                    if t:
+                        j_rows.append({"text": t, "label": "safe", "source": "jigsaw_toxic"})
+
+                _write_csv(jigsaw_path, j_rows)
+                print(f"[prepare_text] Auto-downloaded HF Jigsaw dataset: {len(threats)} threat, {len(toxic)} bullying, {len(benign)} safe matched rows")
             except (OSError, RuntimeError, ValueError, KeyError) as e:
                 print(f"[prepare_text] Notice: could not auto-download HF Jigsaw: {e}")
     except ImportError:
@@ -147,33 +181,55 @@ def load_manual_datasets() -> list[dict[str, str]]:
     # 1. Jigsaw toxic
     jigsaw_path = RAW_DIR / "jigsaw_toxic.csv"
     if jigsaw_path.exists():
-        print(f"[prepare_text] Found manual dataset: {jigsaw_path}")
+        print(f"[prepare_text] Found dataset: {jigsaw_path}")
         with open(jigsaw_path, "r", encoding="utf-8", errors="replace") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 text = (row.get("comment_text") or row.get("text") or "").strip()
                 if not text:
                     continue
-                threat_val = int(row.get("threat") or 0)
-                toxic_val = int(row.get("toxic") or 0)
-                insult_val = int(row.get("insult") or 0)
-                severe_val = int(row.get("severe_toxic") or 0)
+                if row.get("label"):
+                    records.append({
+                        "text": text,
+                        "label": row["label"].strip(),
+                        "source": (row.get("source") or "jigsaw_toxic").strip(),
+                    })
+                else:
+                    threat_val = int(row.get("threat") or 0)
+                    toxic_val = int(row.get("toxic") or 0)
+                    insult_val = int(row.get("insult") or 0)
+                    severe_val = int(row.get("severe_toxic") or 0)
+                    obscene_val = int(row.get("obscene") or 0)
+                    hate_val = int(row.get("identity_hate") or 0)
 
-                if threat_val == 1:
-                    records.append({"text": text, "label": "threat", "source": "jigsaw_toxic"})
-                elif toxic_val == 1 or insult_val == 1 or severe_val == 1:
-                    records.append({"text": text, "label": "bullying", "source": "jigsaw_toxic"})
+                    if threat_val == 1:
+                        records.append({"text": text, "label": "threat", "source": "jigsaw_toxic"})
+                    elif toxic_val == 1 or insult_val == 1 or severe_val == 1:
+                        records.append({"text": text, "label": "bullying", "source": "jigsaw_toxic"})
+                    elif (
+                        threat_val == 0
+                        and toxic_val == 0
+                        and insult_val == 0
+                        and severe_val == 0
+                        and obscene_val == 0
+                        and hate_val == 0
+                    ):
+                        records.append({"text": text, "label": "safe", "source": "jigsaw_toxic"})
 
-    # 2. Nazario phishing
-    nazario_path = RAW_DIR / "nazario_phishing.csv"
-    if nazario_path.exists():
-        print(f"[prepare_text] Found manual dataset: {nazario_path}")
-        with open(nazario_path, "r", encoding="utf-8", errors="replace") as f:
+    # 2. Phishing dataset (hf_phishing or legacy nazario_phishing)
+    phish_path = RAW_DIR / "hf_phishing.csv"
+    if not phish_path.exists():
+        phish_path = RAW_DIR / "nazario_phishing.csv"
+    if phish_path.exists():
+        print(f"[prepare_text] Found dataset: {phish_path}")
+        with open(phish_path, "r", encoding="utf-8", errors="replace") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 t = (row.get("text") or row.get("body") or "").strip()
+                lbl = (row.get("label") or "phishing").strip()
+                src = (row.get("source") or "hf_phishing").strip()
                 if t:
-                    records.append({"text": t, "label": "phishing", "source": "nazario_phishing"})
+                    records.append({"text": t, "label": lbl, "source": src})
 
     # 3. Enron clean
     enron_path = RAW_DIR / "enron_clean.csv"
@@ -189,13 +245,15 @@ def load_manual_datasets() -> list[dict[str, str]]:
     # 4. Cyberbullying tweets
     tweets_path = RAW_DIR / "cyberbullying_tweets.csv"
     if tweets_path.exists():
-        print(f"[prepare_text] Found manual dataset: {tweets_path}")
+        print(f"[prepare_text] Found dataset: {tweets_path}")
         with open(tweets_path, "r", encoding="utf-8", errors="replace") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 t = (row.get("tweet_text") or row.get("text") or "").strip()
+                lbl = (row.get("label") or "bullying").strip()
+                src = (row.get("source") or "hf_cyberbullying").strip()
                 if t:
-                    records.append({"text": t, "label": "bullying", "source": "cyberbullying_tweets"})
+                    records.append({"text": t, "label": lbl, "source": src})
 
     return records
 
@@ -244,7 +302,7 @@ def stratified_split(
     return train_rows, val_rows, holdout_rows
 
 
-def prepare_text_data() -> dict[str, int]:
+def prepare_text_data(holdout_version: str = "v2", force_rebuild: bool = True) -> dict[str, int]:
     """Execute text dataset preparation, deduplication, and 70/15/15 splitting."""
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     HOLDOUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -258,8 +316,8 @@ def prepare_text_data() -> dict[str, int]:
         print(f"[prepare_text] Loaded {len(sms_rows)} rows from SMS Spam Collection.")
         all_rows.extend(sms_rows)
 
-    # 2. Automated public HF datasets
-    download_public_hf_datasets()
+    # 2. Automated public HF datasets with matched negatives
+    download_public_hf_datasets(force=force_rebuild)
 
     # 3. Manual / downloaded raw datasets
     manual_rows = load_manual_datasets()
@@ -270,7 +328,7 @@ def prepare_text_data() -> dict[str, int]:
     if not all_rows:
         raise RuntimeError("No text data available. Could not prepare text splits.")
 
-    # 3. Deduplicate by text
+    # 4. Deduplicate by text
     seen_texts: set[str] = set()
     deduped: list[dict[str, str]] = []
     for r in all_rows:
@@ -291,20 +349,18 @@ def prepare_text_data() -> dict[str, int]:
         print(f"[prepare_text] Notice: Missing classes among TEXT_LABELS: {missing_labels}")
         print("[prepare_text] See DATA.md for instructions on placing raw data files to enable them.")
 
-    # 4. Stratified splits: 70% train, 15% val, 15% holdout
+    # 5. Stratified splits: 70% train, 15% val, 15% holdout
     train_rows, val_rows, holdout_rows = stratified_split(deduped, seed=42)
 
-    holdout_file_v1 = HOLDOUT_DIR / "text_holdout_v1.csv"
-    holdout_file = HOLDOUT_DIR / "text_holdout.csv"
+    versioned_holdout = HOLDOUT_DIR / f"text_holdout_{holdout_version}.csv"
+    active_holdout = HOLDOUT_DIR / "text_holdout.csv"
     train_file = PROCESSED_DIR / "text_train.csv"
     val_file = PROCESSED_DIR / "text_val.csv"
 
-    if not holdout_file_v1.exists():
-        _write_csv(holdout_file_v1, holdout_rows)
-        _write_csv(holdout_file, holdout_rows)
-        print(f"[prepare_text] Wrote frozen holdout to {holdout_file_v1} ({len(holdout_rows)} rows)")
-    else:
-        print(f"[prepare_text] Keeping existing frozen holdout at {holdout_file_v1}")
+    _write_csv(versioned_holdout, holdout_rows)
+    _write_csv(active_holdout, holdout_rows)
+    print(f"[prepare_text] Wrote frozen holdout to {versioned_holdout} ({len(holdout_rows)} rows)")
+    print(f"[prepare_text] Wrote active holdout to {active_holdout} ({len(holdout_rows)} rows)")
 
     _write_csv(train_file, train_rows)
     _write_csv(val_file, val_rows)
@@ -319,4 +375,4 @@ def prepare_text_data() -> dict[str, int]:
 
 
 if __name__ == "__main__":
-    prepare_text_data()
+    prepare_text_data(holdout_version="v2", force_rebuild=True)

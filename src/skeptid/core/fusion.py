@@ -154,6 +154,10 @@ def fuse_results(
     # Detect if any provider ran in mock mode
     is_mock = any(r.model_version == "mock" for r in all_results)
 
+    is_validated = getattr(displayed, "validated", None)
+    if is_validated is None:
+        is_validated = True
+
     provider_summaries: list[dict[str, Any]] = [
         {
             "id": r.provider_id,
@@ -162,6 +166,7 @@ def fuse_results(
             "model_version": r.model_version,
             "latency_ms": r.latency_ms,
             "error": r.error,
+            "validated": r.validated,
         }
         for r in all_results
     ]
@@ -179,4 +184,5 @@ def fuse_results(
         providers=provider_summaries,
         evidence=list(displayed.evidence),
         limits_note="Risk score with evidence, not proof.",
+        validated=is_validated,
     )

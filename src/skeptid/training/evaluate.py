@@ -9,17 +9,28 @@ import csv
 import hashlib
 import json
 import math
+import re
+import sys
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, ".")
+sys.path.insert(0, "src")
+
 import joblib
 
 from skeptid.core.types import TEXT_LABELS
 
+HOLDOUT_FILE_V2 = Path("data/holdout/text_holdout_v2.csv")
 HOLDOUT_FILE_V1 = Path("data/holdout/text_holdout_v1.csv")
-HOLDOUT_FILE = HOLDOUT_FILE_V1 if HOLDOUT_FILE_V1.exists() else Path("data/holdout/text_holdout.csv")
+HOLDOUT_FILE = (
+    HOLDOUT_FILE_V2
+    if HOLDOUT_FILE_V2.exists()
+    else (HOLDOUT_FILE_V1 if HOLDOUT_FILE_V1.exists() else Path("data/holdout/text_holdout.csv"))
+)
+HOLDOUT_VERSION = "holdout_v2" if HOLDOUT_FILE == HOLDOUT_FILE_V2 else "holdout_v1"
 MODEL_PATH = Path("models/text_v1.joblib")
 REGISTRY_PATH = Path("models/registry.json")
 
@@ -55,8 +66,8 @@ def transform_text_with_bundle(text: str, vectorizer_bundle: dict[str, Any]) -> 
     vocab: dict[str, int] = vectorizer_bundle["vocab"]
     idfs: list[float] = vectorizer_bundle["idfs"]
 
-    # Extract word and char n-grams
-    words = [w.lower() for w in text.split() if w]
+    # Extract word and char n-grams matching train_text.py and own_text.py
+    words = re.findall(r"\b[a-zA-Z0-9_']+\b", text.lower())
     ngrams: list[str] = []
     for i in range(len(words)):
         ngrams.append(f"w:{words[i]}")
@@ -122,7 +133,7 @@ def evaluate_model() -> dict[str, Any]:
 
     x_holdout, y_true, sources, sha256_hash = load_holdout_data()
     n_total = len(y_true)
-    print(f"[evaluate] Evaluating {version} on {n_total} frozen holdout samples ({HOLDOUT_FILE.name})...")
+    print(f"[evaluate] Evaluating {version} on {n_total} frozen holdout samples ({HOLDOUT_FILE.name}, {HOLDOUT_VERSION})...")
 
     y_pred: list[str] = []
     for text in x_holdout:
@@ -187,10 +198,39 @@ def evaluate_model() -> dict[str, Any]:
 
     gate_met = len(gate_reasons) == 0
 
+    # Evaluate 20-email probe (fixtures/emails.py)
+    probe_correct = 0
+    probe_details: list[dict[str, Any]] = []
+    try:
+        from tests.fixtures.emails import FIXTURES
+        for item in FIXTURES:
+            feat = transform_text_with_bundle(item["text"], vec_bundle)
+            probs = predict_proba_with_bundle(feat, clf_bundle)
+            pred_label = max(probs, key=probs.get)  # type: ignore[arg-type]
+            is_ok = pred_label == item["label"]
+            if is_ok:
+                probe_correct += 1
+            probe_details.append({
+                "id": item["id"],
+                "truth": item["label"],
+                "predicted": pred_label,
+                "confidence": round(probs[pred_label], 4),
+                "correct": is_ok,
+            })
+    except ImportError as e:
+        print(f"[evaluate] Notice: Could not import email fixtures: {e}")
+
+    probe_record: dict[str, Any] = {
+        "correct": probe_correct,
+        "total": len(probe_details),
+        "accuracy": round(probe_correct / len(probe_details), 4) if probe_details else 0.0,
+        "details": probe_details,
+    }
+
     evaluation_record: dict[str, Any] = {
         "modality": "text",
         "evaluated_at": datetime.now(UTC).isoformat(),
-        "holdout_version": "holdout_v1",
+        "holdout_version": HOLDOUT_VERSION,
         "holdout_samples": n_total,
         "coverage": present_holdout_classes,
         "metrics": {
@@ -199,6 +239,7 @@ def evaluate_model() -> dict[str, Any]:
             "per_class": per_class,
             "confusion_matrix": conf_matrix,
         },
+        "probe_20_email": probe_record,
         "missing_classes": missing_classes,
         "gate_met": gate_met,
         "gate_reasons": gate_reasons,
@@ -206,7 +247,7 @@ def evaluate_model() -> dict[str, Any]:
 
     print("\n--- Model Evaluation Summary ---")
     print(f"Model Version: {version}")
-    print(f"Holdout: holdout_v1 (SHA-256: {sha256_hash[:12]}...)")
+    print(f"Holdout: {HOLDOUT_VERSION} (SHA-256: {sha256_hash[:12]}...)")
     print(f"Accuracy: {accuracy:.4f}")
     print(f"Macro-F1: {macro_f1:.4f}")
     print("Per-class Metrics:")
@@ -218,6 +259,12 @@ def evaluate_model() -> dict[str, Any]:
     if gate_reasons:
         for r in gate_reasons:
             print(f"  Reason: {r}")
+
+    if probe_details:
+        print(f"\n--- 20-Email Probe: {probe_correct}/{len(probe_details)} correct ({probe_record['accuracy']*100:.1f}%) ---")
+        for p in probe_details:
+            status_tag = "OK" if p["correct"] else "WRONG"
+            print(f"  {p['id']:<8} truth={p['truth']:<10} pred={p['predicted']:<10} conf={p['confidence']:.3f} [{status_tag}]")
     print("--------------------------------\n")
 
     # Update models/registry.json
@@ -231,7 +278,7 @@ def evaluate_model() -> dict[str, Any]:
 
     # Record holdout metadata in registry
     registry_data["holdout"] = {
-        "version": "holdout_v1",
+        "version": HOLDOUT_VERSION,
         "filename": HOLDOUT_FILE.name,
         "sha256": sha256_hash,
         "seed": 42,

@@ -61,9 +61,10 @@ class OwnImageProvider(Provider):
                 risk=0.0,
                 evidence=[],
                 latency_ms=int((time.perf_counter() - t0) * 1000),
-                model_version="image_forensic_v1",
+                model_version="heuristic_v0",
                 coverage=list(IMAGE_LABELS),
                 error="invalid_or_missing_image_payload",
+                validated=False,
             )
 
         # 1. Execute forensic extractors
@@ -205,7 +206,8 @@ class OwnImageProvider(Provider):
             risk=risk,
             evidence=evidence,
             latency_ms=latency_ms,
-            model_version="image_forensic_v1",
+            model_version="heuristic_v0",
             coverage=list(IMAGE_LABELS),
             error=None,
+            validated=False,
         )

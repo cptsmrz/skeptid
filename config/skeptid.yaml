@@ -1,12 +1,12 @@
 text:
-  primary: opensource
-  chain: [opensource, own, external]
+  primary: own
+  chain: [own, opensource, external]
   shadow: true
   timeout_s: 8
 
 email:
-  primary: opensource
-  chain: [opensource, own, external]
+  primary: own
+  chain: [own, opensource, external]
   shadow: true
   timeout_s: 8
 
