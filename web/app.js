@@ -61,7 +61,7 @@
     els.html.setAttribute("data-theme", theme);
     document.body.classList.toggle("theme-dark", theme === "dark");
     els.theme.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
-    els.theme.textContent = theme === "dark" ? "Paper" : "Graphite";
+    els.theme.setAttribute("aria-label", "Switch to " + (theme === "dark" ? "Paper" : "Graphite") + " theme");
     try {
       localStorage.setItem("skeptid-theme", theme);
     } catch (e) {
@@ -124,7 +124,23 @@
     if (fixture.status) {
       return { ok: false, status: fixture.status, body: { detail: fixture.detail } };
     }
-    return { ok: true, status: 200, body: fixture };
+    var body = JSON.parse(JSON.stringify(fixture));
+    if (body.providers) body.providers.forEach(function (p) { p.validated = false; });
+    if (body.evidence && (body.modality === "text" || body.modality === "email")) {
+      body.evidence = body.evidence.filter(function (ev) { return ev.kind !== "span"; });
+      var rules = body.level === "HIGH" ? /urgent|verify|password|account|payment|link|confirm/ig :
+        body.level === "MEDIUM" ? /deals?|reply stop|limited stock|vendor/ig : null;
+      if (rules) {
+        var match;
+        while ((match = rules.exec(text)) !== null) {
+          var before = text.slice(0, match.index);
+          var end = text.slice(0, match.index + match[0].length);
+          body.evidence.push({ kind: "span", description: body.level === "HIGH" ? "Potentially risky instruction" : "Message pattern to review", payload: { start: Array.from(before).length, end: Array.from(end).length, weight: body.level === "HIGH" ? 0.28 : 0.18 } });
+          if (body.evidence.filter(function (ev) { return ev.kind === "span"; }).length >= 3) break;
+        }
+      }
+    }
+    return { ok: true, status: 200, body: body };
   }
 
   async function liveAnalyze(text, file) {
@@ -146,7 +162,7 @@
         ok: false,
         status: 0,
         body: {
-          detail: "The desk could not reach the API. Serve this page from the SKEPTID server, or open it with ?mock=1."
+          detail: "Couldn't reach the analysis service. Serve this page from the SKEPTID server, then try again."
         }
       };
     }
@@ -160,16 +176,23 @@
   }
 
   function errorCopy(status, body) {
-    var detail = body && body.detail ? String(body.detail) : "The analysis did not complete.";
+    var detail = "The analysis did not complete.";
     var next = "Paste another message, or try again.";
     if (status === 503) {
+      detail = "The analysis service could not form a verdict.";
       next = "No verdict was formed. Wait a moment, then analyse again. Nothing on this page is a substitute score.";
     } else if (status === 429) {
+      detail = "The analysis service is receiving too many requests.";
       next = "Wait until the rate window resets, then analyse again.";
     } else if (status === 400 || status === 415) {
+      detail = "This file or message could not be analysed.";
       next = "Use pasted text, a .txt file, or a .eml file.";
     } else if (status === 0) {
+      detail = "Couldn't reach the analysis service.";
       next = "Open ?mock=1 for fixtures, or run the API on the same origin.";
+    } else if (body && body.detail && status >= 500) {
+      detail = "The analysis service returned an error.";
+      next = "Wait a moment, then try again.";
     }
     return { happened: detail, next: next };
   }
@@ -191,6 +214,10 @@
       .replace(/"/g, "&quot;");
   }
 
+  function codePointOffsetToUtf16(text, offset) {
+    return Array.from(text).slice(0, Math.max(0, offset)).join("").length;
+  }
+
   function highlight(text, evidence) {
     if (!text) return "<p class=\"muted\">No source text is held for this case.</p>";
     var spans = [];
@@ -199,21 +226,24 @@
       var start = ev.payload.start;
       var end = ev.payload.end;
       if (typeof start !== "number" || typeof end !== "number") return;
-      if (start < 0 || end > text.length || start >= end) return;
-      spans.push({ start: start, end: end, description: ev.description || "" });
+      if (start < 0 || end > Array.from(text).length || start >= end) return;
+      spans.push({ start: codePointOffsetToUtf16(text, start), end: codePointOffsetToUtf16(text, end), description: ev.description || "", weight: ev.payload.weight });
     });
     spans.sort(function (a, b) { return a.start - b.start; });
     var html = "";
     var cursor = 0;
-    spans.forEach(function (sp) {
+    var why = "<ol class=\"why-flagged\">";
+    spans.forEach(function (sp, idx) {
       if (sp.start < cursor) return;
       html += escapeHtml(text.slice(cursor, sp.start));
-      html += "<mark class=\"hl\" title=\"" + escapeHtml(sp.description) + "\">" +
+      html += "<mark class=\"hl\" id=\"span-" + (idx + 1) + "\" title=\"" + escapeHtml(sp.description) + "\"><sup>" + (idx + 1) + "</sup> " +
         escapeHtml(text.slice(sp.start, sp.end)) + "</mark>";
+      why += "<li><a href=\"#span-" + (idx + 1) + "\">" + (idx + 1) + ". " + escapeHtml(sp.description) + "</a> <span class=\"muted\">weight " + showField(sp.weight) + "</span></li>";
       cursor = sp.end;
     });
     html += escapeHtml(text.slice(cursor));
-    return "<p class=\"evidence-text\">" + html + "</p>";
+    why += "</ol>";
+    return "<div class=\"evidence-text\">" + (why === "<ol class=\"why-flagged\"></ol>" ? "<p class=\"muted\">No strong indicators.</p>" : "<h4>Why flagged</h4>" + why) + "<p>" + html + "</p></div>";
   }
 
   function urlsFrom(evidence) {
@@ -246,23 +276,30 @@
   }
 
   function renderModelVersion(version) {
-    var html = "<p class=\"provider-version\"><span class=\"muted\">model_version</span> ";
+    var html = "<p class=\"provider-version\"><span class=\"muted\">Model</span> ";
     html += "<span class=\"mono\">" + showField(version) + "</span>";
-    if (isUnvalidatedVersion(version)) {
-      html += " <span class=\"chip tag-plain\">not validated</span>";
-    }
     html += "</p>";
     return html;
+  }
+
+  function renderRiskStrip(items) {
+    var html = "<div class=\"risk-strip\" role=\"img\" aria-label=\"Provider risk scores on a zero to one scale\"><span class=\"strip-tick tick-35\"></span><span class=\"strip-tick tick-70\"></span>";
+    items.forEach(function (p) {
+      if (p.ok !== true || typeof p.risk !== "number") return;
+      html += "<i title=\"" + escapeHtml(String(p.id)) + ": " + p.risk + "\" style=\"--position:" + Math.max(0, Math.min(1, p.risk)) * 100 + "%\"></i>";
+    });
+    return html + "<span class=\"strip-labels\"><i>0</i><i>0.35</i><i>0.70</i><i>1.0</i></span></div>";
   }
 
   function renderProviders(v) {
     var items = Array.isArray(v.providers) ? v.providers : [];
     if (!items.length) return "";
-    var html = "<div class=\"section\"><h3>Providers</h3>";
-    if (v.disagreement === true) {
-      html += "<p class=\"muted\">Providers disagree. Confidence in the payload already reflects that.</p>";
-    } else if (v.disagreement === false) {
-      html += "<p class=\"muted\">Providers agree within the configured spread.</p>";
+    var html = "<div class=\"section provider-section\"><h3>Providers</h3>";
+    var risks = items.filter(function (p) { return p.ok === true && typeof p.risk === "number"; }).map(function (p) { return p.risk; });
+    if (risks.length > 1) {
+      var spread = Math.max.apply(null, risks) - Math.min.apply(null, risks);
+      html += "<p class=\"muted\">" + (v.disagreement ? "Providers disagree" : "Providers agree") + ", spread " + spread.toFixed(2) + ".</p>";
+      html += renderRiskStrip(items);
     }
     var counts = countOk(items);
     html += "<p class=\"muted\">" + counts.ok + " of " + counts.total + " providers answered.</p>";
@@ -270,12 +307,14 @@
     items.forEach(function (p) {
       var unavailable = p.ok !== true;
       html += "<div class=\"provider" + (unavailable ? " unavailable" : "") + "\">";
-      html += "<div class=\"id\">" + showField(p.id) + "</div>";
+      var names = { own: "SKEPTID model", opensource: "Open-source model", external: "External service" };
+      html += "<div class=\"id\">" + showField(names[p.id] || p.id) + (v.primary_provider === p.id ? " <span class=\"shown-result\">Shown result</span>" : "") + "</div>";
       if (unavailable) {
         html += "<p class=\"muted\">Unavailable" + (p.error ? " — " + showField(p.error) : "") + "</p>";
       } else if (typeof p.risk === "number") {
         html += "<p class=\"num\">" + p.risk + "</p>";
       }
+      if (p.validated === false || isUnvalidatedVersion(p.model_version)) html += "<span class=\"chip tag-plain\">not validated</span>";
       html += renderModelVersion(p.model_version);
       if (typeof p.latency_ms === "number") {
         html += "<p class=\"muted num\">" + p.latency_ms + " ms</p>";
@@ -330,31 +369,38 @@
 
   function renderResult(v, sourceText) {
     var mock = v.mock === true;
+    els.mockChip.hidden = !(MOCK || mock);
     var html = "<div class=\"result-head\">";
     html += "<div><span class=\"verdict\" data-level=\"" + showField(v.level) + "\">" +
       showField(v.level) + "</span>";
-    if (mock) html += " <span class=\"chip mock\">Mock</span>";
+    if (mock) html += " <span class=\"chip mock\">MOCK</span>";
     html += "<p class=\"muted\" style=\"margin-top:12px\">" + showField(v.label) +
       " · " + showField(v.modality) + " · " + showField(v.primary_provider) + "</p></div>";
     html += "<div class=\"meta\"><div class=\"caps\">" + caseRef(v.id) + "</div>";
-    html += "<div class=\"mono\">" + showField(v.id) + "</div></div></div>";
+    html += "<button class=\"copy-id ghost\" type=\"button\" data-id=\"" + showField(v.id) + "\">Copy ID</button></div></div>";
     html += "<dl class=\"stats\">";
     html += "<div class=\"stat\"><dt>Risk</dt><dd id=\"risk-value\" class=\"num\">" +
       (typeof v.risk === "number" ? v.risk : "") + "</dd></div>";
     html += "<div class=\"stat\"><dt>Confidence</dt><dd class=\"num\">" +
       (typeof v.confidence === "number" ? v.confidence : "") + "</dd></div>";
-    html += "<div class=\"stat\"><dt>Level</dt><dd>" + showField(v.level) + "</dd></div>";
+    html += "<div class=\"stat\"><dt>Label</dt><dd>" + showField(v.level) + "</dd></div>";
     html += "</dl>";
+    html += "<div class=\"risk-bar\" role=\"img\" aria-label=\"Risk score\"><span style=\"--risk:" + (typeof v.risk === "number" ? Math.max(0, Math.min(1, v.risk)) * 100 : 0) + "%\"></span><i class=\"tick tick-35\"></i><i class=\"tick tick-70\"></i></div>";
     if (v.limits_note) {
       html += "<p class=\"chip\">" + showField(v.limits_note) + "</p>";
     }
-    html += "<div class=\"section\"><h3>Highlighted spans</h3>" + highlight(sourceText, v.evidence) + "</div>";
+    html += "<div class=\"section evidence-section\"><h3>Highlighted spans</h3>" + highlight(sourceText, v.evidence) + "</div>";
     html += renderProviders(v);
     html += renderTables(v);
     els.msgResult.innerHTML = html;
     els.msgResult.querySelectorAll(".send-media").forEach(function (btn) {
       btn.addEventListener("click", function () {
         sendToMedia(btn.getAttribute("data-filename"));
+      });
+    });
+    els.msgResult.querySelectorAll(".copy-id").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (navigator.clipboard && v.id) navigator.clipboard.writeText(v.id);
       });
     });
     tickRisk(v.risk);
@@ -530,12 +576,13 @@
   function mountExamples() {
     if (!MOCK) return;
     els.msgExamples.hidden = false;
-    var keys = ["low", "medium", "high", "disagree", "partial", "fail", "email"];
+    var keys = ["low", "email", "high", "disagree", "partial", "fail"];
     keys.forEach(function (key) {
       if (!fixtures[key]) return;
       var btn = document.createElement("button");
       btn.type = "button";
-      btn.textContent = "Try " + key;
+      var labels = { low: "Safe message", email: "Phishing email", high: "Threat", disagree: "Providers disagree", partial: "One provider down", fail: "All providers down" };
+      btn.textContent = labels[key] || key;
       btn.addEventListener("click", function () {
         if (key === "email") {
           var blob = new File([samples.email || ""], "invoice.eml");

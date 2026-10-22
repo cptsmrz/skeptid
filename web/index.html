@@ -17,11 +17,13 @@
       <div class="mast-tools">
         <nav class="nav" aria-label="Desk sections">
           <a href="#desk" aria-current="page">Desk</a>
-          <span class="is-disabled" title="Records view is not in this milestone">Records</span>
-          <span class="is-disabled" title="Audio is not implemented">Audio, coming soon</span>
+          <span class="is-disabled" aria-disabled="true">Records</span>
+          <span class="is-disabled" aria-disabled="true">Audio <span class="soon">soon</span></span>
         </nav>
-        <span id="mock-chip" class="chip mock" hidden>Mock</span>
-        <button type="button" id="theme-toggle" aria-pressed="false">Graphite</button>
+        <span id="mock-chip" class="chip mock" hidden>MOCK</span>
+        <button type="button" id="theme-toggle" aria-label="Switch to Graphite theme" aria-pressed="false">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+        </button>
       </div>
     </header>
 
@@ -35,21 +37,18 @@
               <label class="muted" for="message-input">Paste a message, or drop a .eml or .txt file</label>
               <textarea id="message-input" maxlength="20000" rows="6" placeholder="Paste text here"></textarea>
               <div class="row">
-                <button type="button" id="message-choose">Choose file</button>
+                <button type="button" class="secondary" id="message-choose">Choose file</button>
                 <input id="message-file" type="file" accept=".eml,.txt,text/plain,message/rfc822" hidden>
                 <span class="file-name mono" id="message-filename"></span>
-                <button type="button" id="message-analyze">Analyse</button>
+                <button type="button" class="primary" id="message-analyze">Analyse</button>
               </div>
               <div class="progress" aria-hidden="true"><span></span></div>
-              <div class="examples" id="message-examples" hidden></div>
+              <div class="examples" id="message-examples" hidden aria-label="Mock examples"></div>
               <span class="chip privacy">Processed in memory, not stored</span>
             </div>
           </div>
 
-          <div class="glass panel-empty" id="message-empty">
-            <p>Drop a file or paste a message.</p>
-            <p class="muted">This lane scores text and email. It does not read the media tray.</p>
-          </div>
+          <div class="glass panel-empty" id="message-empty"><p>Choose a harmless example or paste a message to begin.</p></div>
           <div class="glass panel-load" id="message-load">
             <p id="message-step">Checking body text</p>
             <div class="skel" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -57,7 +56,7 @@
           <div class="glass panel-fail" id="message-fail" role="alert"></div>
           <div class="panel-result" id="message-result"></div>
           <div class="section" id="message-history-wrap" hidden>
-            <h3>This lane</h3>
+            <h3>History</h3>
             <ul class="history" id="message-history"></ul>
           </div>
         </section>
@@ -66,19 +65,17 @@
           <div class="tray" id="media-tray">
             <div class="tray-label">Media intake</div>
             <div class="tray-body">
-              <p class="muted">Drop an image or a video. This tray keeps its own case file.</p>
+              <p class="muted">Drop an image or video, or choose a file.</p>
               <div class="row">
-                <button type="button" id="media-choose">Choose file</button>
-                <input id="media-file" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,.jpg,.jpeg,.png,.webp,.mp4,.webm" hidden>
+                <button type="button" class="secondary" id="media-choose">Choose file</button>
+                <input id="media-file" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/x-msvideo,.jpg,.jpeg,.png,.webp,.mp4,.mov,.avi" hidden>
                 <span class="file-name mono" id="media-filename"></span>
               </div>
+              <p class="muted media-limits">JPG, PNG, WebP up to 10 MB · MP4, MOV, AVI up to 50 MB and 60 seconds</p>
               <span class="chip privacy">Processed in memory, not stored</span>
             </div>
           </div>
-          <div class="glass panel-empty" id="media-empty">
-            <p>Drop an image or a video.</p>
-            <p class="muted">Analysis for this lane is not on the desk in this revision. A file can still be held here from an email attachment.</p>
-          </div>
+          <div class="glass panel-empty" id="media-empty"><p>Choose an image or video to analyse.</p></div>
         </section>
       </div>
     </main>
