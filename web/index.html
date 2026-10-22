@@ -17,7 +17,7 @@
       <div class="mast-tools">
         <nav class="nav" aria-label="Desk sections">
           <a href="#desk" aria-current="page">Desk</a>
-          <span class="is-disabled" aria-disabled="true">Records</span>
+          <a href="#records" id="records-link">Records</a>
           <span class="is-disabled" aria-disabled="true">Audio <span class="soon">soon</span></span>
         </nav>
         <span id="mock-chip" class="chip mock" hidden>MOCK</span>
@@ -30,7 +30,7 @@
     <main id="desk">
       <div class="desk">
         <section class="lane is-empty" id="message-lane" data-lane="message">
-          <div class="tray" id="message-tray">
+          <div class="tray" id="message-tray" tabindex="0" role="group" aria-label="Message file drop zone. Press Enter to choose a file.">
             <div class="scan" aria-hidden="true"></div>
             <div class="tray-label">Message intake</div>
             <div class="tray-body">
@@ -62,7 +62,7 @@
         </section>
 
         <section class="lane is-empty" id="media-lane" data-lane="media">
-          <div class="tray" id="media-tray">
+          <div class="tray" id="media-tray" tabindex="0" role="group" aria-label="Media file drop zone. Press Enter to choose a file.">
             <div class="tray-label">Media intake</div>
             <div class="tray-body">
               <p class="muted">Drop an image or video, or choose a file.</p>
@@ -70,14 +70,22 @@
                 <button type="button" class="secondary" id="media-choose">Choose file</button>
                 <input id="media-file" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/x-msvideo,.jpg,.jpeg,.png,.webp,.mp4,.mov,.avi" hidden>
                 <span class="file-name mono" id="media-filename"></span>
+                <button type="button" class="primary" id="media-analyze">Analyse</button>
               </div>
               <p class="muted media-limits">JPG, PNG, WebP up to 10 MB · MP4, MOV, AVI up to 50 MB and 60 seconds</p>
               <span class="chip privacy">Processed in memory, not stored</span>
             </div>
           </div>
           <div class="glass panel-empty" id="media-empty"><p>Choose an image or video to analyse.</p></div>
+          <div class="glass panel-load" id="media-load"><p id="media-step">Checking media</p><div class="skel" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>
+          <div class="glass panel-fail" id="media-fail" role="alert"></div>
+          <div class="panel-result" id="media-result"></div>
         </section>
       </div>
+      <section class="records-view" id="records" hidden>
+        <div class="records-head"><h2>Records</h2><button type="button" class="ghost" id="records-back">Back to desk</button></div>
+        <div id="records-content"></div>
+      </section>
     </main>
   </div>
   <script src="fixtures.js"></script>

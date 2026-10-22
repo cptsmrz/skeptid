@@ -15,7 +15,10 @@
   };
   var media = {
     file: null,
-    pendingName: ""
+    pendingName: "",
+    verdict: null,
+    objectUrl: null,
+    duration: null
   };
 
   var els = {
@@ -38,7 +41,18 @@
     mediaTray: document.getElementById("media-tray"),
     mediaChoose: document.getElementById("media-choose"),
     mediaFile: document.getElementById("media-file"),
-    mediaName: document.getElementById("media-filename")
+    mediaName: document.getElementById("media-filename"),
+    mediaLane: document.getElementById("media-lane"),
+    mediaStep: document.getElementById("media-step"),
+    mediaFail: document.getElementById("media-fail"),
+    mediaResult: document.getElementById("media-result"),
+    mediaAnalyze: document.getElementById("media-analyze"),
+    recordsLink: document.getElementById("records-link"),
+    records: document.getElementById("records"),
+    recordsContent: document.getElementById("records-content"),
+    recordsBack: document.getElementById("records-back"),
+    deskGrid: document.querySelector(".desk"),
+    deskLink: document.querySelector(".nav a[href=\"#desk\"]")
   };
 
   var STEPS = [
@@ -104,7 +118,7 @@
     if (name.indexOf("medium") !== -1 || body.indexOf("reply stop") !== -1) return "medium";
     if (name.indexOf("low") !== -1 || body.indexOf("no password or account action") !== -1) return "low";
     if (/\.(png|jpe?g|webp)$/.test(name)) return "image";
-    if (/\.(mp4|webm)$/.test(name)) return "video";
+    if (/\.(mp4|mov|avi|webm)$/.test(name)) return "video";
     return "low";
   }
 
@@ -143,6 +157,15 @@
     return { ok: true, status: 200, body: body };
   }
 
+  async function mockMediaAnalyze(file) {
+    await sleep(reduceMotion() ? 80 : 720);
+    var fixture = fixtures[mediaKind(file)];
+    if (!fixture) return { ok: false, status: 500, body: { detail: "Mock media fixture is missing." } };
+    var body = JSON.parse(JSON.stringify(fixture));
+    if (body.providers) body.providers.forEach(function (p) { p.validated = false; });
+    return { ok: true, status: 200, body: body };
+  }
+
   async function liveAnalyze(text, file) {
     var res;
     try {
@@ -173,6 +196,77 @@
       body = { detail: "The server returned a non-JSON response." };
     }
     return { ok: res.ok, status: res.status, body: body };
+  }
+
+  async function liveAnalyzeMedia(file) {
+    var form = new FormData();
+    form.append("file", file, file.name);
+    try {
+      var res = await fetch("/api/media/analyze", { method: "POST", body: form });
+      var body = {};
+      try { body = await res.json(); } catch (e) { body = {}; }
+      return { ok: res.ok, status: res.status, body: body };
+    } catch (e) {
+      return { ok: false, status: 0, body: {} };
+    }
+  }
+
+  function mediaKind(file) {
+    var name = (file && file.name || "").toLowerCase();
+    if (/\.(jpe?g|png|webp)$/.test(name)) return "image";
+    if (/\.(mp4|mov|avi)$/.test(name)) return "video";
+    return "";
+  }
+
+  function inspectVideo(file) {
+    return new Promise(function (resolve) {
+      var url = URL.createObjectURL(file);
+      var video = document.createElement("video");
+      video.preload = "metadata";
+      video.muted = true;
+      var settled = false;
+      var done = function (duration) { if (settled) return; settled = true; video.removeAttribute("src"); video.load(); resolve({ duration: duration, url: url }); };
+      video.onloadedmetadata = function () { done(Number.isFinite(video.duration) ? video.duration : null); };
+      video.onerror = function () { done(null); };
+      setTimeout(function () { if (!video.readyState) done(null); }, 5000);
+      video.src = url;
+    });
+  }
+
+  function feedbackMarkup(v, key) {
+    var labels = v.modality === "image" || v.modality === "video" ?
+      ["real", "ai_generated", "ai_edited", "deepfake", "manipulated"] :
+      ["safe", "spam", "phishing", "threat", "bullying"];
+    var html = "<div class=\"section feedback\" data-feedback=\"" + key + "\"><h3>Was this useful?</h3><div class=\"feedback-row\"><button type=\"button\" class=\"secondary feedback-correct\">Correct</button><button type=\"button\" class=\"ghost feedback-wrong\">Wrong, it was...</button><label class=\"feedback-label\" hidden>True label <select>";
+    labels.forEach(function (label) { html += "<option value=\"" + label + "\">" + label.replace(/_/g, " ") + "</option>"; });
+    html += "</select></label><button type=\"button\" class=\"primary feedback-send\" hidden>Send label</button></div><p class=\"muted feedback-status\" aria-live=\"polite\"></p></div>";
+    return html;
+  }
+
+  function bindFeedback(root, v, key) {
+    var box = root.querySelector("[data-feedback=\"" + key + "\"]");
+    if (!box || !v.id) return;
+    var correct = box.querySelector(".feedback-correct");
+    var wrong = box.querySelector(".feedback-wrong");
+    var label = box.querySelector(".feedback-label");
+    var send = box.querySelector(".feedback-send");
+    var status = box.querySelector(".feedback-status");
+    async function submit(isCorrect, trueLabel) {
+      correct.disabled = true; wrong.disabled = true; send.disabled = true;
+      status.textContent = "Sending feedback…";
+      try {
+        var response = await fetch("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ analysis_id: v.id, correct: isCorrect, true_label: trueLabel || undefined }) });
+        var data = await response.json();
+        if (!response.ok) throw new Error("Feedback could not be sent.");
+        status.textContent = data.status === "recorded" ? "Feedback recorded." : "Feedback received.";
+      } catch (e) {
+        status.textContent = "Feedback could not be sent. Check the connection and try again.";
+        correct.disabled = false; wrong.disabled = false; send.disabled = false;
+      }
+    }
+    correct.addEventListener("click", function () { submit(true); });
+    wrong.addEventListener("click", function () { label.hidden = false; send.hidden = false; });
+    send.addEventListener("click", function () { submit(false, label.querySelector("select").value); });
   }
 
   function errorCopy(status, body) {
@@ -298,7 +392,8 @@
     var risks = items.filter(function (p) { return p.ok === true && typeof p.risk === "number"; }).map(function (p) { return p.risk; });
     if (risks.length > 1) {
       var spread = Math.max.apply(null, risks) - Math.min.apply(null, risks);
-      html += "<p class=\"muted\">" + (v.disagreement ? "Providers disagree" : "Providers agree") + ", spread " + spread.toFixed(2) + ".</p>";
+      var agreement = v.disagreement ? "Providers disagree" : risks.length === 3 ? "All three agree" : "Answered providers agree";
+      html += "<p class=\"muted\">" + agreement + ", spread " + spread.toFixed(2) + ".</p>";
       html += renderRiskStrip(items);
     }
     var counts = countOk(items);
@@ -310,7 +405,8 @@
       var names = { own: "SKEPTID model", opensource: "Open-source model", external: "External service" };
       html += "<div class=\"id\">" + showField(names[p.id] || p.id) + (v.primary_provider === p.id ? " <span class=\"shown-result\">Shown result</span>" : "") + "</div>";
       if (unavailable) {
-        html += "<p class=\"muted\">Unavailable" + (p.error ? " — " + showField(p.error) : "") + "</p>";
+        var issue = String(p.error || "").toLowerCase();
+        html += "<p class=\"muted\">Unavailable" + (issue === "timeout" ? " · Timed out" : issue === "blocked" ? " · Request blocked" : "") + "</p>";
       } else if (typeof p.risk === "number") {
         html += "<p class=\"num\">" + p.risk + "</p>";
       }
@@ -383,15 +479,16 @@
       (typeof v.risk === "number" ? v.risk : "") + "</dd></div>";
     html += "<div class=\"stat\"><dt>Confidence</dt><dd class=\"num\">" +
       (typeof v.confidence === "number" ? v.confidence : "") + "</dd></div>";
-    html += "<div class=\"stat\"><dt>Label</dt><dd>" + showField(v.level) + "</dd></div>";
+    html += "<div class=\"stat\"><dt>Label</dt><dd>" + showField(v.label) + "</dd></div>";
     html += "</dl>";
-    html += "<div class=\"risk-bar\" role=\"img\" aria-label=\"Risk score\"><span style=\"--risk:" + (typeof v.risk === "number" ? Math.max(0, Math.min(1, v.risk)) * 100 : 0) + "%\"></span><i class=\"tick tick-35\"></i><i class=\"tick tick-70\"></i></div>";
+    html += "<div class=\"risk-bar\" role=\"img\" aria-label=\"Risk " + (typeof v.risk === "number" ? v.risk : "not available") + "\"><span style=\"--risk:" + (typeof v.risk === "number" ? Math.max(0, Math.min(1, v.risk)) * 100 : 0) + "%\"></span><i class=\"tick tick-35\"></i><i class=\"tick tick-70\"></i></div>";
     if (v.limits_note) {
       html += "<p class=\"chip\">" + showField(v.limits_note) + "</p>";
     }
     html += "<div class=\"section evidence-section\"><h3>Highlighted spans</h3>" + highlight(sourceText, v.evidence) + "</div>";
     html += renderProviders(v);
     html += renderTables(v);
+    html += feedbackMarkup(v, "message");
     els.msgResult.innerHTML = html;
     els.msgResult.querySelectorAll(".send-media").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -400,10 +497,176 @@
     });
     els.msgResult.querySelectorAll(".copy-id").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        if (navigator.clipboard && v.id) navigator.clipboard.writeText(v.id);
+        if (navigator.clipboard && v.id) navigator.clipboard.writeText(v.id).catch(function () { btn.textContent = "Copy unavailable"; });
       });
     });
+    bindFeedback(els.msgResult, v, "message");
     tickRisk(v.risk);
+  }
+
+  function renderMediaResult(v, file) {
+    var mock = v.mock === true;
+    els.mockChip.hidden = !(MOCK || mock);
+    var html = "<div class=\"result-head\"><div><span class=\"verdict\" data-level=\"" + showField(v.level) + "\">" + showField(v.level) + "</span>";
+    if (mock) html += " <span class=\"chip mock\">MOCK</span>";
+    html += "<p class=\"muted\">" + showField(v.label) + " · " + showField(v.modality) + "</p></div><div class=\"meta\"><div class=\"caps\">" + caseRef(v.id) + "</div><button class=\"copy-id ghost\" type=\"button\" data-id=\"" + showField(v.id) + "\">Copy ID</button></div></div>";
+    html += "<dl class=\"stats\"><div class=\"stat\"><dt>Risk</dt><dd class=\"num\">" + (typeof v.risk === "number" ? v.risk : "") + "</dd></div><div class=\"stat\"><dt>Confidence</dt><dd class=\"num\">" + (typeof v.confidence === "number" ? v.confidence : "") + "</dd></div><div class=\"stat\"><dt>Label</dt><dd>" + showField(v.label) + "</dd></div></dl>";
+    html += "<div class=\"risk-bar\" role=\"img\" aria-label=\"Risk " + (typeof v.risk === "number" ? v.risk : "not available") + "\"><span style=\"--risk:" + (typeof v.risk === "number" ? Math.max(0, Math.min(1, v.risk)) * 100 : 0) + "%\"></span><i class=\"tick tick-35\"></i><i class=\"tick tick-70\"></i></div>";
+    var evidence = Array.isArray(v.evidence) ? v.evidence : [];
+    var heat = evidence.find(function (ev) { return ev.kind === "heatmap" && ev.payload && ev.payload.png_b64; });
+    if (mediaKind(file) === "image") {
+      var src = media.objectUrl || URL.createObjectURL(file);
+      var mapRaw = heat ? String(heat.payload.png_b64) : "";
+      var mapSrc = mapRaw.length < 4000000 && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(mapRaw) ? mapRaw : mapRaw.length < 4000000 && /^[A-Za-z0-9+/=]+$/.test(mapRaw) ? "data:image/png;base64," + mapRaw : "";
+      html += "<div class=\"section media-visual\"><h3>Forensic anomaly map</h3><div class=\"anomaly-wrap\"><img class=\"media-preview\" src=\"" + src + "\" alt=\"Uploaded image\">" + (mapSrc ? "<img class=\"anomaly-layer\" src=\"" + mapSrc + "\" alt=\"Forensic anomaly overlay\" style=\"opacity:.55\">" : "") + "</div>";
+      if (mapSrc) html += "<label class=\"opacity-control\">Map opacity <input type=\"range\" min=\"0\" max=\"1\" step=\"0.05\" value=\"0.55\"></label>";
+      else html += "<p class=\"muted\">No forensic anomaly map was returned for this file.</p>";
+      html += "<p class=\"media-caption\">" + escapeHtml(file.name) + " · " + file.size + " bytes</p></div>";
+    } else {
+      var videoUrl = media.objectUrl || URL.createObjectURL(file);
+      html += "<div class=\"section media-visual\"><h3>Video frames</h3><video class=\"media-preview video-preview\" src=\"" + videoUrl + "\" controls preload=\"metadata\"></video><div class=\"frame-strip-wrap\"><div class=\"frame-strip\" aria-label=\"Video frame thumbnails\"></div></div><h3>Risk over time</h3><div class=\"frame-chart-wrap\"><svg class=\"frame-chart\" viewBox=\"0 0 1000 110\" role=\"img\" aria-label=\"Frame risk over time\"></svg></div></div>";
+    }
+    html += renderProviders(v);
+    html += feedbackMarkup(v, "media");
+    els.mediaResult.innerHTML = html;
+    els.mediaResult.querySelectorAll(".copy-id").forEach(function (btn) { btn.addEventListener("click", function () { if (navigator.clipboard) navigator.clipboard.writeText(v.id).catch(function () { btn.textContent = "Copy unavailable"; }); }); });
+    var opacity = els.mediaResult.querySelector(".opacity-control input");
+    if (opacity) opacity.addEventListener("input", function () { var layer = els.mediaResult.querySelector(".anomaly-layer"); if (layer) layer.style.opacity = opacity.value; });
+    bindFeedback(els.mediaResult, v, "media");
+    if (mediaKind(file) === "video") renderVideoTimeline(els.mediaResult, file, evidence);
+  }
+
+  async function renderVideoTimeline(root, file, evidence) {
+    var scores = evidence.filter(function (ev) { return ev.kind === "frame_score" && ev.payload && typeof ev.payload.t === "number" && typeof ev.payload.score === "number"; });
+    var strip = root.querySelector(".frame-strip");
+    var chart = root.querySelector(".frame-chart");
+    if (!scores.length) { strip.textContent = "No frame thumbnails were returned."; var missing = document.createElement("p"); missing.className = "muted"; missing.textContent = "No frame timeline was returned."; chart.replaceWith(missing); return; }
+    var maxTime = Math.max.apply(null, scores.map(function (ev) { return ev.payload.t; })) || 1;
+    var url = media.objectUrl || URL.createObjectURL(file);
+    var player = document.createElement("video");
+    player.muted = true; player.preload = "metadata"; player.src = url;
+    await new Promise(function (resolve) { player.onloadedmetadata = resolve; player.onerror = resolve; setTimeout(resolve, 5000); });
+    var points = [];
+    var canvas = document.createElement("canvas"); canvas.width = 192; canvas.height = 108;
+    var context = canvas.getContext("2d");
+    for (var idx = 0; idx < scores.length; idx += 1) {
+      var t = Math.max(0, scores[idx].payload.t);
+      var thumbnail = "";
+      try {
+        if (Number.isFinite(player.duration) && player.duration > 0) {
+          player.currentTime = Math.min(t, player.duration);
+          await new Promise(function (resolve) { player.onseeked = resolve; setTimeout(resolve, 1200); });
+          context.drawImage(player, 0, 0, canvas.width, canvas.height);
+          thumbnail = canvas.toDataURL("image/jpeg", 0.65);
+        }
+      } catch (e) { thumbnail = ""; }
+      var button = document.createElement("button"); button.type = "button";
+      button.style.left = (5 + (t / maxTime) * 90) + "%";
+      button.setAttribute("aria-label", "Show frame at " + t.toFixed(2) + " seconds, risk " + scores[idx].payload.score);
+      if (thumbnail) { var img = document.createElement("img"); img.src = thumbnail; img.alt = "Frame at " + t.toFixed(2) + " seconds"; button.appendChild(img); }
+      var caption = document.createElement("span"); caption.textContent = t.toFixed(1) + "s · " + scores[idx].payload.score; button.appendChild(caption);
+      button.addEventListener("click", function (time) { return function () { var preview = root.querySelector("video"); if (preview && Number.isFinite(preview.duration)) preview.currentTime = Math.min(time, preview.duration); }; }(t));
+      strip.appendChild(button);
+      var x = 50 + (t / maxTime) * 900;
+      var y = 100 - Math.max(0, Math.min(1, scores[idx].payload.score)) * 90;
+      points.push(x.toFixed(1) + "," + y.toFixed(1));
+    }
+    player.removeAttribute("src"); player.load();
+    var poly = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    poly.setAttribute("points", points.join(" ")); poly.setAttribute("fill", "none"); poly.setAttribute("stroke", "currentColor"); poly.setAttribute("stroke-width", "2"); chart.appendChild(poly);
+    [0.35, 0.70].forEach(function (value) { var y = 100 - value * 90; var line = document.createElementNS("http://www.w3.org/2000/svg", "line"); line.setAttribute("x1", "24"); line.setAttribute("x2", "980"); line.setAttribute("y1", String(y)); line.setAttribute("y2", String(y)); line.setAttribute("stroke", "currentColor"); line.setAttribute("stroke-dasharray", "4 5"); line.setAttribute("opacity", ".45"); chart.appendChild(line); });
+    scores.forEach(function (ev, idx) { var circle = document.createElementNS("http://www.w3.org/2000/svg", "circle"); circle.setAttribute("cx", String(50 + (ev.payload.t / maxTime) * 900)); circle.setAttribute("cy", String(100 - Math.max(0, Math.min(1, ev.payload.score)) * 90)); circle.setAttribute("r", "5"); circle.setAttribute("tabindex", "0"); circle.setAttribute("role", "button"); circle.setAttribute("aria-label", "Frame " + (idx + 1) + ", " + ev.payload.t + " seconds, risk " + ev.payload.score); circle.addEventListener("click", function () { var preview = root.querySelector("video"); if (preview && Number.isFinite(preview.duration)) preview.currentTime = Math.min(ev.payload.t, preview.duration); }); circle.addEventListener("keydown", function (event) { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); circle.click(); } }); chart.appendChild(circle); });
+  }
+
+  function showRecords() {
+    els.deskGrid.hidden = true;
+    els.records.hidden = false;
+    els.recordsLink.setAttribute("aria-current", "page");
+  }
+
+  function showDesk() {
+    els.records.hidden = true;
+    els.deskGrid.hidden = false;
+    els.recordsLink.removeAttribute("aria-current");
+    els.deskLink.setAttribute("aria-current", "page");
+  }
+
+  function renderConfusion(matrix) {
+    if (!matrix || typeof matrix !== "object" || !Object.keys(matrix).length) return "<p class=\"muted\">Not evaluated.</p>";
+    var labels = Object.keys(matrix);
+    var html = "<div class=\"records-table\"><table><thead><tr><th>Actual \\ Predicted</th>";
+    labels.forEach(function (label) { html += "<th>" + escapeHtml(label) + "</th>"; });
+    html += "</tr></thead><tbody>";
+    labels.forEach(function (actual) {
+      html += "<tr><th>" + escapeHtml(actual) + "</th>";
+      labels.forEach(function (predicted) {
+        var value = matrix[actual] && matrix[actual][predicted];
+        html += "<td class=\"num\">" + (typeof value === "number" ? value : "—") + "</td>";
+      });
+      html += "</tr>";
+    });
+    return html + "</tbody></table></div>";
+  }
+
+  function activePrimary(data, modality) {
+    var sources = [data.active_primary, data.primary_by_modality, data.primaries];
+    for (var i = 0; i < sources.length; i += 1) {
+      var source = sources[i];
+      if (source && typeof source === "object" && source[modality]) {
+        var item = source[modality];
+        return typeof item === "string" ? item : item.version || item.model_version || item.provider || "";
+      }
+    }
+    var promos = Array.isArray(data.promotions) ? data.promotions : [];
+    var selected = promos.slice().reverse().find(function (p) { return p && p.modality === modality && (p.active === true || p.status === "promoted"); });
+    return selected && (selected.version || selected.model_version || selected.primary_provider) || "";
+  }
+
+  function renderRecords(data) {
+    var models = data && data.models && typeof data.models === "object" ? data.models : {};
+    var modalities = ["text", "email", "image", "video"];
+    var html = "<section class=\"section\"><h3>Active primary by modality</h3><div class=\"records-table\"><table><thead><tr><th>Modality</th><th>Primary</th></tr></thead><tbody>";
+    modalities.forEach(function (modality) {
+      html += "<tr><th>" + modality + "</th><td>" + (activePrimary(data, modality) ? escapeHtml(activePrimary(data, modality)) : "<span class=\"muted\">Not recorded</span>") + "</td></tr>";
+    });
+    html += "</tbody></table></div></section>";
+    var versions = Object.keys(models).sort();
+    html += "<section class=\"section\"><h3>Model evaluations</h3>";
+    if (!versions.length) html += "<p class=\"muted\">Not evaluated.</p>";
+    versions.forEach(function (version) {
+      var item = models[version] || {};
+      var metrics = item.metrics || {};
+      var perClass = metrics.per_class || {};
+      html += "<article class=\"record-model\"><h4>" + escapeHtml(version) + " · " + escapeHtml(item.modality || "unknown modality") + "</h4>";
+      if (typeof metrics.accuracy !== "number" && typeof metrics.macro_f1 !== "number") html += "<p class=\"muted\">Not evaluated.</p>";
+      else {
+        html += "<dl class=\"record-stats\">";
+        html += "<div><dt>Accuracy</dt><dd>" + (typeof metrics.accuracy === "number" ? metrics.accuracy : "Not evaluated") + "</dd></div>";
+        html += "<div><dt>Macro F1</dt><dd>" + (typeof metrics.macro_f1 === "number" ? metrics.macro_f1 : "Not evaluated") + "</dd></div>";
+        html += "<div><dt>Holdout</dt><dd>" + escapeHtml(item.holdout_version || "Not recorded") + "</dd></div></dl>";
+        if (Object.keys(perClass).length) {
+          html += "<div class=\"records-table\"><table><thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead><tbody>";
+          Object.keys(perClass).sort().forEach(function (label) { var score = perClass[label]; html += "<tr><th>" + escapeHtml(label) + "</th><td class=\"num\">" + (typeof score.precision === "number" ? score.precision : "—") + "</td><td class=\"num\">" + (typeof score.recall === "number" ? score.recall : "—") + "</td><td class=\"num\">" + (typeof score.f1_score === "number" ? score.f1_score : "—") + "</td></tr>"; });
+          html += "</tbody></table></div>";
+        }
+        html += "<details><summary>Confusion matrix</summary>" + renderConfusion(metrics.confusion_matrix) + "</details>";
+      }
+      html += "</article>";
+    });
+    els.recordsContent.innerHTML = html + "</section>";
+  }
+
+  async function loadRecords() {
+    showRecords();
+    els.deskLink.removeAttribute("aria-current");
+    els.recordsContent.innerHTML = "<p class=\"muted\">Loading model records…</p>";
+    try {
+      var response = await fetch("/api/metrics");
+      if (!response.ok) throw new Error("Metrics unavailable");
+      renderRecords(await response.json());
+    } catch (e) {
+      els.recordsContent.innerHTML = "<div class=\"glass panel-fail\"><p>Couldn't load model records.</p><p>Check the connection, then open Records again.</p></div>";
+    }
   }
 
   function tickRisk(target) {
@@ -470,16 +733,97 @@
     });
   }
 
-  function sendToMedia(filename) {
+  function decodeMimePart(raw, filename) {
+    var lines = raw.replace(/\r\n/g, "\n").split("\n");
+    var boundaryMatch = raw.match(/boundary\s*=\s*(?:"([^"]+)"|([^;\s]+))/i);
+    if (!boundaryMatch) return null;
+    var boundary = "--" + (boundaryMatch[1] || boundaryMatch[2]);
+    var blocks = raw.split(boundary);
+    for (var i = 1; i < blocks.length; i += 1) {
+      var block = blocks[i].replace(/^\r?\n/, "").replace(/\r?\n--\s*$/, "");
+      var split = block.search(/\r?\n\r?\n/);
+      if (split < 0) continue;
+      var headers = block.slice(0, split);
+      var content = block.slice(split).replace(/^\r?\n\r?\n/, "").replace(/\r?\n$/, "");
+      var nameMatch = headers.match(/filename\*?\s*=\s*(?:UTF-8''([^;\r\n]+)|"([^"]+)"|([^;\r\n]+))/i);
+      var name = nameMatch && decodeURIComponent(nameMatch[1] || nameMatch[2] || nameMatch[3]).replace(/^.*[\\/]/, "");
+      var nestedType = headers.match(/content-type\s*:\s*([^;\r\n]+)/i);
+      var nestedBoundary = headers.match(/boundary\s*=\s*(?:"([^"]+)"|([^;\s]+))/i);
+      if (nestedBoundary && content.indexOf("--" + (nestedBoundary[1] || nestedBoundary[2])) !== -1) {
+        var nested = decodeMimePart("Content-Type: " + nestedType[1] + "; boundary=\"" + (nestedBoundary[1] || nestedBoundary[2]) + "\"\r\n\r\n" + content, filename);
+        if (nested) return nested;
+      }
+      if (name !== filename) continue;
+      var encoding = (headers.match(/content-transfer-encoding\s*:\s*([^\r\n]+)/i) || ["", ""])[1].trim().toLowerCase();
+      var mime = (nestedType || ["", "application/octet-stream"])[1].trim();
+      try {
+        if (encoding === "base64") {
+          var binary = atob(content.replace(/\s/g, ""));
+          var bytes = new Uint8Array(binary.length);
+          for (var b = 0; b < binary.length; b += 1) bytes[b] = binary.charCodeAt(b);
+          return new File([bytes], filename, { type: mime });
+        }
+        if (encoding === "quoted-printable") content = content.replace(/=\n/g, "").replace(/=([0-9A-F]{2})/gi, function (_, hex) { return String.fromCharCode(parseInt(hex, 16)); });
+        return new File([content], filename, { type: mime });
+      } catch (e) { return null; }
+    }
+    return null;
+  }
+
+  function decodeEmailBody(raw) {
+    var boundaryMatch = raw.match(/boundary\s*=\s*(?:"([^"]+)"|([^;\s]+))/i);
+    if (!boundaryMatch) {
+      var bodyStart = raw.search(/\r?\n\r?\n/);
+      return bodyStart < 0 ? raw : raw.slice(bodyStart).replace(/^\r?\n\r?\n/, "");
+    }
+    var boundary = "--" + (boundaryMatch[1] || boundaryMatch[2]);
+    var blocks = raw.split(boundary);
+    var fallback = "";
+    for (var i = 1; i < blocks.length; i += 1) {
+      var block = blocks[i].replace(/^\r?\n/, "");
+      var split = block.search(/\r?\n\r?\n/);
+      if (split < 0) continue;
+      var headers = block.slice(0, split);
+      var content = block.slice(split).replace(/^\r?\n\r?\n/, "").replace(/\r?\n--\s*$/, "").replace(/\r?\n$/, "");
+      if (/content-disposition\s*:\s*attachment/i.test(headers)) continue;
+      if (!/content-type\s*:\s*text\/(plain|html)/i.test(headers)) continue;
+      if (!fallback) fallback = content;
+      if (!/content-type\s*:\s*text\/plain/i.test(headers)) continue;
+      var encoding = (headers.match(/content-transfer-encoding\s*:\s*([^\r\n]+)/i) || ["", ""])[1].trim().toLowerCase();
+      if (encoding === "base64") {
+        try { var binary = atob(content.replace(/\s/g, "")); var bytes = new Uint8Array(binary.length); for (var j = 0; j < binary.length; j += 1) bytes[j] = binary.charCodeAt(j); return new TextDecoder().decode(bytes); } catch (e) { return content; }
+      }
+      if (encoding === "quoted-printable") return content.replace(/=\n/g, "").replace(/=([0-9A-F]{2})/gi, function (_, hex) { return String.fromCharCode(parseInt(hex, 16)); });
+      return content;
+    }
+    return fallback || raw;
+  }
+
+  async function sendToMedia(filename) {
     if (!filename) return;
-    var file = new File([""], filename);
-    media.file = file;
-    media.pendingName = filename;
-    els.mediaName.textContent = filename;
+    var copied = null;
+    var attachment = attachmentsFrom(message.verdict && message.verdict.evidence).find(function (ev) {
+      return ev.payload && ev.payload.filename === filename;
+    });
+    if (attachment && attachment.payload.content_b64) {
+      try {
+        var bin = atob(attachment.payload.content_b64);
+        var bytes = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+        copied = new File([bytes], filename, { type: attachment.payload.type || "application/octet-stream" });
+      } catch (e) { copied = null; }
+    }
+    if (!copied && message.file && /\.eml$/i.test(message.file.name)) {
+      try { copied = decodeMimePart(await message.file.text(), filename); } catch (e) { copied = null; }
+    }
+    if (!copied) {
+      els.msgFail.textContent = "This attachment's file data is not available in the email. Choose the original file from the Media tray.";
+      setLaneMode(els.msgLane, "fail");
+      return;
+    }
+    await onMediaFile(copied);
     els.mediaTray.classList.add("is-dragover");
-    setTimeout(function () {
-      els.mediaTray.classList.remove("is-dragover");
-    }, 200);
+    setTimeout(function () { els.mediaTray.classList.remove("is-dragover"); }, 200);
   }
 
   async function analyze() {
@@ -489,6 +833,7 @@
       if (!text) {
         try {
           text = await file.text();
+          if (/\.eml$/i.test(file.name)) text = decodeEmailBody(text);
         } catch (e) {
           text = "";
         }
@@ -535,7 +880,49 @@
     renderHistory();
   }
 
+  function mediaFailure(message) {
+    els.mediaFail.innerHTML = "<p>" + escapeHtml(message) + "</p><p>Choose a supported file or try again.</p>";
+    setLaneMode(els.mediaLane, "fail");
+  }
+
+  async function analyzeMedia() {
+    var file = media.file;
+    if (!file) { mediaFailure("Choose an image or video first."); return; }
+    var kind = mediaKind(file);
+    if (!kind) { mediaFailure("This file type is not supported."); return; }
+    if (kind === "image" && file.size > 10 * 1024 * 1024) { mediaFailure("This image is larger than 10 MB."); return; }
+    if (kind === "video" && file.size > 50 * 1024 * 1024) { mediaFailure("This video is larger than 50 MB."); return; }
+    if (kind === "video" && media.duration !== null && media.duration > 60) { mediaFailure("This video is longer than 60 seconds."); return; }
+    setLaneMode(els.mediaLane, "loading");
+    els.mediaTray.classList.add("is-loading");
+    var result = MOCK ? await mockMediaAnalyze(file) : await liveAnalyzeMedia(file);
+    els.mediaTray.classList.remove("is-loading");
+    if (!result.ok) {
+      var detail = result.status === 404 ? "Media analysis is not available on this server yet." :
+        result.status === 0 ? "Couldn't reach the analysis service." :
+        result.status === 413 ? "This media file exceeds the server's size limit." :
+        result.status === 415 || result.status === 400 ? "This media file could not be analysed." :
+        "The media analysis service returned an error.";
+      els.mediaFail.innerHTML = "<p>" + detail + "</p><p>Try again later or choose another supported file.</p>";
+      setLaneMode(els.mediaLane, "fail");
+      return;
+    }
+    var verdict = result.body;
+    if (!verdict || !verdict.id || typeof verdict.risk !== "number") { mediaFailure("The response did not contain a complete media verdict."); return; }
+    media.verdict = verdict;
+    setLaneMode(els.mediaLane, "result");
+    renderMediaResult(verdict, file);
+  }
+
   function bindDrop(tray, onFile) {
+    tray.addEventListener("keydown", function (ev) {
+      if (ev.target !== tray) return;
+      if (ev.key === "Enter" || ev.key === " ") {
+        ev.preventDefault();
+        var chooser = tray.id === "message-tray" ? els.msgFile : els.mediaFile;
+        chooser.click();
+      }
+    });
     tray.addEventListener("dragover", function (ev) {
       ev.preventDefault();
       tray.classList.add("is-dragover");
@@ -560,6 +947,7 @@
       return;
     }
     file.text().then(function (t) {
+      if (/\.eml$/i.test(file.name)) t = decodeEmailBody(t);
       els.msgInput.value = t;
       message.text = t;
     }).catch(function () {
@@ -567,10 +955,29 @@
     });
   }
 
-  function onMediaFile(file) {
+  async function onMediaFile(file) {
+    if (media.objectUrl) URL.revokeObjectURL(media.objectUrl);
+    media.objectUrl = null;
+    media.file = null;
+    els.mediaName.textContent = "";
+    var kind = mediaKind(file);
+    if (!kind) { mediaFailure("Use a JPG, PNG, WebP, MP4, MOV, or AVI file."); return; }
+    if (kind === "image" && file.size > 10 * 1024 * 1024) { mediaFailure("This image is larger than 10 MB."); return; }
+    if (kind === "video" && file.size > 50 * 1024 * 1024) { mediaFailure("This video is larger than 50 MB."); return; }
     media.file = file;
     media.pendingName = file.name;
+    media.duration = null;
+    if (kind === "video") {
+      var info = await inspectVideo(file);
+      media.duration = info.duration;
+      media.objectUrl = info.url;
+      if (info.duration !== null && info.duration > 60) { mediaFailure("This video is longer than 60 seconds."); return; }
+    } else {
+      media.objectUrl = URL.createObjectURL(file);
+    }
     els.mediaName.textContent = file.name;
+    media.verdict = null;
+    setLaneMode(els.mediaLane, "empty");
   }
 
   function mountExamples() {
@@ -603,6 +1010,9 @@
     var next = els.html.getAttribute("data-theme") === "dark" ? "light" : "dark";
     applyTheme(next);
   });
+  els.recordsLink.addEventListener("click", function (ev) { ev.preventDefault(); loadRecords(); });
+  els.recordsBack.addEventListener("click", showDesk);
+  els.deskLink.addEventListener("click", function (ev) { ev.preventDefault(); showDesk(); });
   els.msgChoose.addEventListener("click", function () { els.msgFile.click(); });
   els.mediaChoose.addEventListener("click", function () { els.mediaFile.click(); });
   els.msgFile.addEventListener("change", function () {
@@ -611,6 +1021,7 @@
   els.mediaFile.addEventListener("change", function () {
     if (els.mediaFile.files[0]) onMediaFile(els.mediaFile.files[0]);
   });
+  els.mediaAnalyze.addEventListener("click", analyzeMedia);
   els.msgAnalyze.addEventListener("click", function () { analyze(); });
   els.msgInput.addEventListener("keydown", function (ev) {
     if (ev.key === "Enter" && (ev.metaKey || ev.ctrlKey)) {

@@ -236,8 +236,8 @@ window.SKEPTID_FIXTURES = {
     evidence: [
       {
         kind: "heatmap",
-        description: "Forensic anomaly map (synthetic)",
-        payload: { png_b64: "" }
+        description: "Forensic anomaly map (synthetic mock example)",
+        payload: { png_b64: "iVBORw0KGgoAAAANSUhEUgAAAGAAAABACAYAAADlNHIOAAADZ0lEQVR4nO2b604iQRCFfZD+CaKICyy6DQuKgorrBUXU6GaTfdN+ts0kp5KTDksMM1CddP34MhdulXOqTnMZ9oJ3e4Ye6gXkjnoBuaNeQO6oF5A76gXkjnoBuaNeQO6oF5A76gXkjnoBuaNewI6pBe/qxH50XDMDqkeELmgE7w6Iw+i4QfetmwHVCN8gsZvBuyOiFR03yZTGLozQFmkb1Eh4Fr0Q+zh4941oR8fHZIqYIUZsJZ60xaqaOnV8MxK9ELsTvOsS36PjDpkiZjRpIiqfBm3BtiH+ITpYhO+Q2L3g3QlxGh33yJQOGXFE01CpCdqibVP8NgkvYv8AHvRpX24TU8SI9jZN0BauavFb1PXS8SJ8IfYA/ARD2pfb+mSETIRMQ6tqE7TFK0st6nwW/4S6fUCCj4J3Z+Cc9kdkyICm4iQygSeh9MKsLWBZ9rFASuzE4vch6IgEHwfvLsAl7Y/JkBEe119hgsTRAV4/WwMkepqU+f8T/5wEnwTvpuCK9idkyPkaE2RNaFYRRdoilu1+zv0uMpvFP0Nni/CF4NfBuxswo/1r3C5GjPF4NqGH1+H1oNQUaItYVfdL9Jwiu6XzRfwpCX8bvPsF7mj/loyYkgkyCR7Pz1FUegq0hSzT/Qe08HYpegYUOyz+jER/AI+0L2bMIhMkjgYURV1akEutBdpCljFA4qdN3c/Rc4E4YfHvIfo8ePcUvHvGdo7z95EJEzwPR9EprQWlY0hbyE2orYifHnX/kLr/CrEi4s8h+iJ49xK8W2K7wPk5mXCDx8sUDGkKeitiaKO3pNpibkL9C/Ezpu6/Rbw8QuRC8Nfg3Vvw7h3bV5x/xv3u8DiZgvEXYmijdUBbzCoN8FH8TKn7H9DdC4hdCP8RvPvE9h3nF7jfA03BNIohbwZsZsATuvwNov8O3v3B9gPnX3A/M2AN6xbgOP9nUfws0e2fEP8vtp84v4xiaLZiHah0IdYW0yYgAUF3ZYCtAVs2wN4F7Qj7HJAA9kk4AQPsuyBF7NvQBLDfAxKbAvtFTGkK7DdhReyqiASw64ISwK6MSwC7NjQB7OroBLD/BySC/UMmEew/Yglh/5I0zICkUC8gd9QLyB31AnJHvYDcUS8gd9QLyB31AnJHvYDcUS8gd9QLyB31AnJHvYDc+QffWp2Gw5syAgAAAABJRU5ErkJggg==" }
       },
       {
         kind: "metric",
