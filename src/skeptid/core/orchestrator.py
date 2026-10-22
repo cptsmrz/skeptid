@@ -90,14 +90,19 @@ class Orchestrator:
             try:
                 mod_cfg = self.config.get_modality_config(modality.value)
                 for pid in mod_cfg.chain:
-                    if is_live and modality == Modality.TEXT:
-                        if pid == "own":
-                            from skeptid.providers.own_text import OwnTextProvider
-                            self.providers[modality][pid] = OwnTextProvider(provider_id=pid)
-                            continue
-                        elif pid == "opensource":
-                            from skeptid.providers.opensource import OpenSourceTextProvider
-                            self.providers[modality][pid] = OpenSourceTextProvider(provider_id=pid)
+                    if is_live:
+                        if modality == Modality.TEXT:
+                            if pid == "own":
+                                from skeptid.providers.own_text import OwnTextProvider
+                                self.providers[modality][pid] = OwnTextProvider(provider_id=pid)
+                                continue
+                            elif pid == "opensource":
+                                from skeptid.providers.opensource import OpenSourceTextProvider
+                                self.providers[modality][pid] = OpenSourceTextProvider(provider_id=pid)
+                                continue
+                        elif modality == Modality.IMAGE and pid == "own":
+                            from skeptid.providers.own_image import OwnImageProvider
+                            self.providers[modality][pid] = OwnImageProvider(provider_id=pid)
                             continue
 
                     self.providers[modality][pid] = MockProvider(

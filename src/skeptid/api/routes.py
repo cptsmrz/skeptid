@@ -14,7 +14,7 @@ from skeptid.api.schemas import (
     VerdictResponse,
 )
 from skeptid.api.security import check_rate_limit
-from skeptid.api.validators import validate_text
+from skeptid.api.validators import detect_media_type, validate_text
 from skeptid.core.orchestrator import AllProvidersFailedError, Orchestrator
 from skeptid.core.types import AnalysisInput, Modality
 
@@ -135,6 +135,85 @@ async def analyze_message(
                 "model_version": p["model_version"],
                 "latency_ms": p["latency_ms"],
                 "error": p.get("error"),
+            }
+            for p in verdict.providers
+        ],
+        evidence=[
+            {
+                "kind": ev.kind,
+                "description": ev.description,
+                "payload": ev.payload,
+            }
+            for ev in verdict.evidence
+        ],
+        limits_note=verdict.limits_note,
+    )
+
+
+@router.post(
+    "/api/media/analyze",
+    response_model=VerdictResponse,
+    dependencies=[Depends(check_rate_limit)],
+    tags=["Analysis"],
+)
+async def analyze_media(
+    request: Request,
+    orchestrator: Orchestrator = Depends(get_orchestrator),
+) -> VerdictResponse:
+    """Analyze uploaded media (image or video) in the Media Lane."""
+    content_type = request.headers.get("content-type", "")
+    if "multipart/form-data" not in content_type:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Content-Type must be multipart/form-data with a 'file' field.",
+        )
+
+    form = await request.form()
+    uploaded_file = form.get("file")
+    if not uploaded_file or not hasattr(uploaded_file, "read"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Multipart request must contain a 'file' field.",
+        )
+
+    file_bytes = await uploaded_file.read()
+    filename = getattr(uploaded_file, "filename", "media")
+
+    # Detect whether image or video via magic bytes
+    media_type, _ = detect_media_type(file_bytes)
+
+    if media_type == "image":
+        from skeptid.engines.image import ImageEngine
+        engine = ImageEngine(orchestrator)
+        verdict = await engine.analyze(file_bytes, filename=filename)
+    elif media_type == "video":
+        from skeptid.engines.video import VideoEngine
+        v_engine = VideoEngine(config=orchestrator.config)
+        verdict = await v_engine.analyze(file_bytes, filename=filename)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unrecognized media type.",
+        )
+
+    return VerdictResponse(
+        id=verdict.id,
+        modality=verdict.modality.value,
+        label=verdict.label,
+        risk=verdict.risk,
+        level=verdict.level,
+        confidence=verdict.confidence,
+        disagreement=verdict.disagreement,
+        primary_provider=verdict.primary_provider,
+        mock=verdict.mock,
+        providers=[
+            {
+                "id": getattr(p, "provider_id", None) or (p.get("id") if isinstance(p, dict) else "unknown"),
+                "ok": getattr(p, "ok", None) if not isinstance(p, dict) else p.get("ok", True),
+                "risk": getattr(p, "risk", None) if not isinstance(p, dict) else p.get("risk", 0.0),
+                "model_version": getattr(p, "model_version", None) if not isinstance(p, dict) else p.get("model_version", "unknown"),
+                "latency_ms": getattr(p, "latency_ms", None) if not isinstance(p, dict) else p.get("latency_ms", 0),
+                "error": getattr(p, "error", None) if not isinstance(p, dict) else p.get("error"),
             }
             for p in verdict.providers
         ],

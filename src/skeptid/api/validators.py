@@ -62,3 +62,87 @@ def validate_image_bytes(data: bytes) -> str:
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="Unsupported image format. Allowed formats: JPEG, PNG, WebP (magic-byte validated).",
     )
+
+
+def validate_video_bytes(data: bytes) -> str:
+    """Validate video magic bytes and size limit. Returns detected format."""
+    if len(data) > MAX_VIDEO_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"Video exceeds maximum size of {MAX_VIDEO_BYTES // (1024 * 1024)} MB.",
+        )
+    if len(data) < 16:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid video payload: file too small.",
+        )
+
+    # MP4 / QuickTime: bytes 4..8 == 'ftyp'
+    if data[4:8] == b"ftyp":
+        return "mp4"
+    # WebM / Matroska: \x1a\x45\xdf\xa3
+    if data[:4] == b"\x1a\x45\xdf\xa3":
+        return "webm"
+    # AVI: RIFF....AVI
+    if data[:4] == b"RIFF" and data[8:12] == b"AVI ":
+        return "avi"
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Unsupported video format. Allowed formats: MP4, WebM, AVI (magic-byte validated).",
+    )
+
+
+def detect_media_type(data: bytes) -> tuple[str, str]:
+    """Inspect magic bytes to determine if media is 'image' or 'video' and format.
+
+    Returns:
+        (media_type, format_name) where media_type is 'image' or 'video'.
+    """
+    if len(data) > MAX_VIDEO_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail="File exceeds maximum allowable media upload size.",
+        )
+    if len(data) < 12:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid media payload: file too small.",
+        )
+
+    # Check images first
+    if data.startswith(JPEG_MAGIC):
+        if len(data) > MAX_IMAGE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail=f"Image exceeds maximum size of {MAX_IMAGE_BYTES // (1024 * 1024)} MB.",
+            )
+        return "image", "jpeg"
+    if data.startswith(PNG_MAGIC):
+        if len(data) > MAX_IMAGE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail=f"Image exceeds maximum size of {MAX_IMAGE_BYTES // (1024 * 1024)} MB.",
+            )
+        return "image", "png"
+    if data.startswith(WEBP_RIFF) and data[8:12] == WEBP_MARKER:
+        if len(data) > MAX_IMAGE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail=f"Image exceeds maximum size of {MAX_IMAGE_BYTES // (1024 * 1024)} MB.",
+            )
+        return "image", "webp"
+
+    # Check video
+    if data[4:8] == b"ftyp":
+        return "video", "mp4"
+    if data[:4] == b"\x1a\x45\xdf\xa3":
+        return "video", "webm"
+    if data[:4] == b"RIFF" and data[8:12] == b"AVI ":
+        return "video", "avi"
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Unsupported media format. Magic bytes must match JPEG, PNG, WebP (image) or MP4, WebM, AVI (video).",
+    )
+
