@@ -18,9 +18,18 @@ All official model evaluation metrics are written strictly by evaluation scripts
 - **P1 (External)**: Server-side hidden API adapter.
 
 ### Image Engine
-- **P3 (Own)**: Forensic features (Error Level Analysis, 2D FFT radially-averaged power spectrum, noise residual statistics, EXIF/quantization table analysis) + classification head.
-- **P2 (Open Source)**: Pretrained image detector checkpoint from Hugging Face.
-- **P1 (External)**: Server-side hidden API adapter.
+- **P3 (Own)**: Forensic features (Error Level Analysis, 2D FFT radially-averaged power spectrum, noise residual statistics, EXIF/quantization table analysis) + heuristic classification head.
+  - *Reported Model Version*: `heuristic_v0`.
+  - *Status*: Carries `validated=false` until validated on frozen benchmark.
+- **P2 (Open Source)**: Vision Transformer (ViT) image classification checkpoint fine-tuned for AI-generated vs. authentic image discrimination:
+  - **ViT AI Image Detector** (`dima806/ai_vs_human_generated_image_detection`):
+    - *License*: Apache License 2.0 (verified from Hugging Face model repository metadata and model card).
+    - *Base Model*: `google/vit-base-patch16-224-in21k` (Apache 2.0).
+    - *Training Data*: Curated dataset of human-created photographs vs. diffusion/GAN-synthesized AI images (Stable Diffusion, Midjourney, DALL-E).
+    - *Architecture*: Vision Transformer (ViT) patch projection + self-attention encoder with classification head mapped to SKEPTID's `IMAGE_LABELS` (`authentic`, `filtered`, `ai_edited`, `ai_generated`).
+    - *Lazy Loading & Fallback*: Loads model pipeline on-demand; cleanly falls back with `ok=False, error="optional_dependency_not_installed"` if dependencies or weights are unavailable.
+    - *Reported Model Version*: `vit:dima806/ai_vs_human_generated_image_detection` with `validated=false`.
+- **P1 (External)**: Server-side multi-vendor router (Gemini 3.8 Flash, Groq, OpenRouter, Cloudflare Workers AI) supporting multimodal vision inputs.
 
 ## Checkpoint Registry Status
 See `models/registry.json` for active versions, holdout evaluations, confusion matrices, and gated promotion records.

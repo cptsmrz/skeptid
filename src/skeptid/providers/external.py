@@ -6,6 +6,7 @@ Isolates vendor-specific request/response shapes and protects against prompt inj
 """
 
 import asyncio
+import base64
 import hashlib
 import json
 import logging
@@ -67,8 +68,13 @@ class BaseVendorAdapter(ABC):
         ...
 
     @abstractmethod
-    def _to_vendor_request(self, text: str) -> tuple[str, dict[str, str], dict[str, Any]]:
-        """Construct (url, headers, json_body) for text classification."""
+    def _to_vendor_request(
+        self,
+        text: str,
+        raw_bytes: bytes | None = None,
+        mime_type: str | None = None,
+    ) -> tuple[str, dict[str, str], dict[str, Any]]:
+        """Construct (url, headers, json_body) for text or multimodal classification."""
         ...
 
     @abstractmethod
@@ -76,9 +82,15 @@ class BaseVendorAdapter(ABC):
         """Parse raw vendor JSON response into standard classification dictionary."""
         ...
 
-    async def call_api(self, client: httpx.AsyncClient, text: str) -> dict[str, Any]:
+    async def call_api(
+        self,
+        client: httpx.AsyncClient,
+        text: str,
+        raw_bytes: bytes | None = None,
+        mime_type: str | None = None,
+    ) -> dict[str, Any]:
         """Execute HTTP request with 1 retry on 5xx, no retry on 4xx, and never logging keys."""
-        url, headers, body = self._to_vendor_request(text)
+        url, headers, body = self._to_vendor_request(text, raw_bytes=raw_bytes, mime_type=mime_type)
 
         last_exc: Exception | None = None
         for attempt in range(2):
@@ -129,13 +141,18 @@ class BaseVendorAdapter(ABC):
 class GeminiVendorAdapter(BaseVendorAdapter):
     """Google Gemini API adapter via Generative Language v1beta."""
 
-    def __init__(self, model_name: str = "gemini-1.5-flash", timeout_s: float = 8.0) -> None:
+    def __init__(self, model_name: str = "gemini-3.8-flash", timeout_s: float = 8.0) -> None:
         super().__init__(name="gemini", model_name=model_name, timeout_s=timeout_s)
 
     def is_configured(self) -> bool:
         return bool(os.getenv("GEMINI_API_KEY"))
 
-    def _to_vendor_request(self, text: str) -> tuple[str, dict[str, str], dict[str, Any]]:
+    def _to_vendor_request(
+        self,
+        text: str,
+        raw_bytes: bytes | None = None,
+        mime_type: str | None = None,
+    ) -> tuple[str, dict[str, str], dict[str, Any]]:
         api_key = os.getenv("GEMINI_API_KEY", "")
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={api_key}"
         headers = {"Content-Type": "application/json"}
@@ -143,8 +160,16 @@ class GeminiVendorAdapter(BaseVendorAdapter):
             f"{TEXT_CLASSIFICATION_SYSTEM_PROMPT}\n\n"
             f"<ANALYZE_TARGET>\n{text}\n</ANALYZE_TARGET>"
         )
+        parts: list[dict[str, Any]] = [{"text": prompt}]
+        if raw_bytes:
+            parts.append({
+                "inlineData": {
+                    "mimeType": mime_type or "image/png",
+                    "data": base64.b64encode(raw_bytes).decode("ascii"),
+                }
+            })
         body = {
-            "contents": [{"parts": [{"text": prompt}]}],
+            "contents": [{"parts": parts}],
             "generationConfig": {
                 "temperature": 0.0,
                 "responseMimeType": "application/json",
@@ -183,7 +208,12 @@ class GroqVendorAdapter(BaseVendorAdapter):
     def is_configured(self) -> bool:
         return bool(os.getenv("GROQ_API_KEY"))
 
-    def _to_vendor_request(self, text: str) -> tuple[str, dict[str, str], dict[str, Any]]:
+    def _to_vendor_request(
+        self,
+        text: str,
+        raw_bytes: bytes | None = None,
+        mime_type: str | None = None,
+    ) -> tuple[str, dict[str, str], dict[str, Any]]:
         api_key = os.getenv("GROQ_API_KEY", "")
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
@@ -219,7 +249,12 @@ class OpenRouterVendorAdapter(BaseVendorAdapter):
     def is_configured(self) -> bool:
         return bool(os.getenv("OPENROUTER_API_KEY"))
 
-    def _to_vendor_request(self, text: str) -> tuple[str, dict[str, str], dict[str, Any]]:
+    def _to_vendor_request(
+        self,
+        text: str,
+        raw_bytes: bytes | None = None,
+        mime_type: str | None = None,
+    ) -> tuple[str, dict[str, str], dict[str, Any]]:
         api_key = os.getenv("OPENROUTER_API_KEY", "")
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
@@ -228,13 +263,27 @@ class OpenRouterVendorAdapter(BaseVendorAdapter):
             "HTTP-Referer": "https://github.com/cptsmrz/skeptid",
             "X-Title": "SKEPTID Content Trust",
         }
+        model = self.model_name
+        if raw_bytes and "dots" not in model and "vision" not in model and "vl" not in model:
+            model = "dots-studio/dots-3-note-preview:free"
+
+        user_content: list[dict[str, Any]] | str
+        if raw_bytes:
+            b64 = base64.b64encode(raw_bytes).decode("ascii")
+            user_content = [
+                {"type": "text", "text": f"<ANALYZE_TARGET>\n{text}\n</ANALYZE_TARGET>" if text else "Analyze this image for safety."},
+                {"type": "image_url", "image_url": {"url": f"data:{mime_type or 'image/png'};base64,{b64}"}},
+            ]
+        else:
+            user_content = f"<ANALYZE_TARGET>\n{text}\n</ANALYZE_TARGET>"
+
         body = {
-            "model": self.model_name,
+            "model": model,
             "temperature": 0.0,
             "response_format": {"type": "json_object"},
             "messages": [
                 {"role": "system", "content": TEXT_CLASSIFICATION_SYSTEM_PROMPT},
-                {"role": "user", "content": f"<ANALYZE_TARGET>\n{text}\n</ANALYZE_TARGET>"},
+                {"role": "user", "content": user_content},
             ],
         }
         return url, headers, body
@@ -257,7 +306,12 @@ class CloudflareVendorAdapter(BaseVendorAdapter):
     def is_configured(self) -> bool:
         return bool(os.getenv("CF_API_TOKEN") and os.getenv("CF_ACCOUNT_ID"))
 
-    def _to_vendor_request(self, text: str) -> tuple[str, dict[str, str], dict[str, Any]]:
+    def _to_vendor_request(
+        self,
+        text: str,
+        raw_bytes: bytes | None = None,
+        mime_type: str | None = None,
+    ) -> tuple[str, dict[str, str], dict[str, Any]]:
         api_token = os.getenv("CF_API_TOKEN", "")
         account_id = os.getenv("CF_ACCOUNT_ID", "")
         url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{self.model_name}"
@@ -306,6 +360,8 @@ class ExternalProvider(Provider):
         self.id = provider_id
         self.modality = modality
         self.daily_budget = daily_budget
+        self.per_vendor_daily_budget = daily_budget
+        self._vendor_call_counts: dict[str, int] = {}
         self.is_mock = is_mock
         self._call_count = 0
         self._budget_day = time.strftime("%Y-%m-%d")
@@ -322,12 +378,27 @@ class ExternalProvider(Provider):
             ]
 
     def _check_budget(self) -> bool:
-        """Enforce daily call budget."""
+        """Enforce daily call budget across vendors. Returns True if any configured vendor has budget remaining."""
         today = time.strftime("%Y-%m-%d")
         if today != self._budget_day:
             self._budget_day = today
             self._call_count = 0
-        return self._call_count < self.daily_budget
+            self._vendor_call_counts.clear()
+        return any(self._check_vendor_budget(a.name) for a in self.adapters if a.is_configured())
+
+    def _check_vendor_budget(self, vendor_name: str) -> bool:
+        """Enforce per-vendor daily call budget."""
+        today = time.strftime("%Y-%m-%d")
+        if today != self._budget_day:
+            self._budget_day = today
+            self._call_count = 0
+            self._vendor_call_counts.clear()
+        count = self._vendor_call_counts.get(vendor_name, 0)
+        return count < self.per_vendor_daily_budget
+
+    def _record_vendor_call(self, vendor_name: str) -> None:
+        self._vendor_call_counts[vendor_name] = self._vendor_call_counts.get(vendor_name, 0) + 1
+        self._call_count += 1
 
     async def health(self) -> bool:
         """Health check returns True in mock mode or if any vendor adapter is configured."""
@@ -365,8 +436,9 @@ class ExternalProvider(Provider):
                 validated=False,
             )
 
-        # 2. SHA-256 Cache Check
-        cache_key = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        # 2. SHA-256 Hash Cache Check
+        cache_bytes = text.encode("utf-8") + (payload.raw_bytes or b"")
+        cache_key = hashlib.sha256(cache_bytes).hexdigest()
         if cache_key in self._cache:
             cached = self._cache[cache_key]
             return ProviderResult(
@@ -401,13 +473,25 @@ class ExternalProvider(Provider):
                 if not adapter.is_configured():
                     continue
 
+                if not self._check_vendor_budget(adapter.name):
+                    errors.append(f"{adapter.name}: per-vendor daily budget exceeded ({self.per_vendor_daily_budget})")
+                    continue
+
                 if adapter.circuit_breaker.is_open(adapter.name):
                     errors.append(f"{adapter.name}: circuit breaker open")
                     continue
 
                 try:
-                    self._call_count += 1
-                    parsed = await adapter.call_api(client, text)
+                    self._record_vendor_call(adapter.name)
+                    if payload.raw_bytes is not None:
+                        parsed = await adapter.call_api(
+                            client,
+                            text,
+                            raw_bytes=payload.raw_bytes,
+                            mime_type=payload.metadata.get("content_type"),
+                        )
+                    else:
+                        parsed = await adapter.call_api(client, text)
 
                     # Check for safety filter block
                     if parsed.get("blocked"):

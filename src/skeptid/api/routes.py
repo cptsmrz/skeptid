@@ -71,7 +71,8 @@ async def analyze_message(
             ) from exc
         raw_text = body.get("text", "")
         clean_text = validate_text(raw_text)
-        inp = AnalysisInput(modality=Modality.TEXT, text=clean_text)
+        use_external = bool(body.get("use_external", True))
+        inp = AnalysisInput(modality=Modality.TEXT, text=clean_text, use_external=use_external)
 
         try:
             verdict = await orchestrator.analyze(inp)
@@ -85,6 +86,10 @@ async def analyze_message(
         form = await request.form()
         uploaded_file = form.get("file")
         form_text = form.get("text")
+        raw_use_ext = form.get("use_external")
+        use_external = True
+        if raw_use_ext is not None:
+            use_external = str(raw_use_ext).lower() not in ("false", "0", "no")
 
         if uploaded_file and hasattr(uploaded_file, "filename") and hasattr(uploaded_file, "read"):
             filename = (uploaded_file.filename or "").lower()
@@ -92,7 +97,11 @@ async def analyze_message(
             if filename.endswith(".eml"):
                 email_engine = EmailEngine(orchestrator)
                 try:
-                    verdict = await email_engine.analyze(file_bytes, filename=uploaded_file.filename)
+                    verdict = await email_engine.analyze(
+                        file_bytes,
+                        filename=uploaded_file.filename,
+                        use_external=use_external,
+                    )
                 except AllProvidersFailedError as exc:
                     raise HTTPException(
                         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -105,6 +114,7 @@ async def analyze_message(
                     modality=Modality.TEXT,
                     text=clean_text,
                     filename=uploaded_file.filename,
+                    use_external=use_external,
                 )
                 try:
                     verdict = await orchestrator.analyze(inp)
@@ -120,7 +130,7 @@ async def analyze_message(
                 )
         elif form_text is not None:
             clean_text = validate_text(str(form_text))
-            inp = AnalysisInput(modality=Modality.TEXT, text=clean_text)
+            inp = AnalysisInput(modality=Modality.TEXT, text=clean_text, use_external=use_external)
             try:
                 verdict = await orchestrator.analyze(inp)
             except AllProvidersFailedError as exc:
@@ -174,6 +184,7 @@ async def analyze_message(
         ],
         limits_note=verdict.limits_note,
         validated=verdict.validated,
+        external_used=verdict.external_used,
     )
 
 
@@ -259,6 +270,7 @@ async def analyze_media(
         ],
         limits_note=verdict.limits_note,
         validated=verdict.validated,
+        external_used=verdict.external_used,
     )
 
 

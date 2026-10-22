@@ -99,10 +99,17 @@ class Orchestrator:
                                 from skeptid.providers.opensource import OpenSourceTextProvider
                                 self.providers[modality][pid] = OpenSourceTextProvider(provider_id=pid)
                                 continue
-                        elif modality == Modality.IMAGE and pid == "own":
-                            from skeptid.providers.own_image import OwnImageProvider
-                            self.providers[modality][pid] = OwnImageProvider(provider_id=pid)
-                            continue
+                        elif modality == Modality.IMAGE:
+                            if pid == "own":
+                                from skeptid.providers.own_image import OwnImageProvider
+                                self.providers[modality][pid] = OwnImageProvider(provider_id=pid)
+                                continue
+                            elif pid in ("opensource", "opensource_image"):
+                                from skeptid.providers.opensource_image import (
+                                    OpenSourceImageProvider,
+                                )
+                                self.providers[modality][pid] = OpenSourceImageProvider(provider_id=pid)
+                                continue
 
                         if pid == "external":
                             from skeptid.providers.external import ExternalProvider
@@ -191,6 +198,8 @@ class Orchestrator:
         chain_ids = mod_cfg.chain
         tasks = []
         for pid in chain_ids:
+            if not getattr(payload, "use_external", True) and pid == "external":
+                continue
             provider = self.providers[modality].get(pid)
             if not provider:
                 # Dynamically instantiate mock provider if missing

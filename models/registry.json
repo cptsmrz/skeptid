@@ -653,7 +653,7 @@
         "opensource_p2": {
           "holdout_macro_f1": 0.4498,
           "holdout_accuracy": 0.66,
-          "probe_accuracy": 0.80,
+          "probe_accuracy": 0.8,
           "probe_false_positives": 3
         }
       },
@@ -1064,6 +1064,350 @@
               "spam": 0.2614,
               "threat": 0.0001,
               "bullying": 0.0004
+            }
+          }
+        ]
+      }
+    },
+    "external": {
+      "modality": "text",
+      "provider": "external",
+      "evaluated_at": "2026-10-22T11:36:17Z",
+      "probe_20_email": {
+        "total": 20,
+        "correct": 20,
+        "accuracy": 1.0,
+        "false_positives": 0,
+        "latency_ms": {
+          "min": 839,
+          "mean": 2906.9,
+          "p50": 1521.0,
+          "p95": 10913,
+          "max": 10913
+        },
+        "answering_vendors": {
+          "groq": 19,
+          "gemini": 1
+        },
+        "details": [
+          {
+            "id": "leg_01",
+            "truth": "safe",
+            "predicted": "safe",
+            "correct": true,
+            "risk": 0.0,
+            "vendor": "groq",
+            "latency_ms": 5788,
+            "scores": {
+              "safe": 0.9259,
+              "phishing": 0.0185,
+              "spam": 0.0185,
+              "threat": 0.0185,
+              "bullying": 0.0185
+            }
+          },
+          {
+            "id": "leg_02",
+            "truth": "safe",
+            "predicted": "safe",
+            "correct": true,
+            "risk": 0.0,
+            "vendor": "groq",
+            "latency_ms": 8972,
+            "scores": {
+              "safe": 0.9259,
+              "phishing": 0.0185,
+              "spam": 0.0185,
+              "threat": 0.0185,
+              "bullying": 0.0185
+            }
+          },
+          {
+            "id": "leg_03",
+            "truth": "safe",
+            "predicted": "safe",
+            "correct": true,
+            "risk": 0.0,
+            "vendor": "gemini",
+            "latency_ms": 8233,
+            "scores": {
+              "safe": 0.9259,
+              "phishing": 0.0185,
+              "spam": 0.0185,
+              "threat": 0.0185,
+              "bullying": 0.0185
+            }
+          },
+          {
+            "id": "leg_04",
+            "truth": "safe",
+            "predicted": "safe",
+            "correct": true,
+            "risk": 0.1,
+            "vendor": "groq",
+            "latency_ms": 839,
+            "scores": {
+              "safe": 0.9184,
+              "phishing": 0.0204,
+              "spam": 0.0204,
+              "threat": 0.0204,
+              "bullying": 0.0204
+            }
+          },
+          {
+            "id": "leg_05",
+            "truth": "safe",
+            "predicted": "safe",
+            "correct": true,
+            "risk": 0.0,
+            "vendor": "groq",
+            "latency_ms": 2637,
+            "scores": {
+              "safe": 0.9259,
+              "phishing": 0.0185,
+              "spam": 0.0185,
+              "threat": 0.0185,
+              "bullying": 0.0185
+            }
+          },
+          {
+            "id": "leg_06",
+            "truth": "safe",
+            "predicted": "safe",
+            "correct": true,
+            "risk": 0.1,
+            "vendor": "groq",
+            "latency_ms": 1095,
+            "scores": {
+              "safe": 0.9184,
+              "phishing": 0.0204,
+              "spam": 0.0204,
+              "threat": 0.0204,
+              "bullying": 0.0204
+            }
+          },
+          {
+            "id": "leg_07",
+            "truth": "safe",
+            "predicted": "safe",
+            "correct": true,
+            "risk": 0.1,
+            "vendor": "groq",
+            "latency_ms": 1209,
+            "scores": {
+              "safe": 0.9184,
+              "phishing": 0.0204,
+              "spam": 0.0204,
+              "threat": 0.0204,
+              "bullying": 0.0204
+            }
+          },
+          {
+            "id": "leg_08",
+            "truth": "safe",
+            "predicted": "safe",
+            "correct": true,
+            "risk": 0.0,
+            "vendor": "groq",
+            "latency_ms": 1943,
+            "scores": {
+              "safe": 0.9259,
+              "phishing": 0.0185,
+              "spam": 0.0185,
+              "threat": 0.0185,
+              "bullying": 0.0185
+            }
+          },
+          {
+            "id": "leg_09",
+            "truth": "safe",
+            "predicted": "safe",
+            "correct": true,
+            "risk": 0.1,
+            "vendor": "groq",
+            "latency_ms": 1786,
+            "scores": {
+              "safe": 0.9184,
+              "phishing": 0.0204,
+              "spam": 0.0204,
+              "threat": 0.0204,
+              "bullying": 0.0204
+            }
+          },
+          {
+            "id": "leg_10",
+            "truth": "safe",
+            "predicted": "safe",
+            "correct": true,
+            "risk": 0.1,
+            "vendor": "groq",
+            "latency_ms": 935,
+            "scores": {
+              "safe": 0.9184,
+              "phishing": 0.0204,
+              "spam": 0.0204,
+              "threat": 0.0204,
+              "bullying": 0.0204
+            }
+          },
+          {
+            "id": "phi_01",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "correct": true,
+            "risk": 0.95,
+            "vendor": "groq",
+            "latency_ms": 1451,
+            "scores": {
+              "safe": 0.0194,
+              "phishing": 0.9223,
+              "spam": 0.0194,
+              "threat": 0.0194,
+              "bullying": 0.0194
+            }
+          },
+          {
+            "id": "phi_02",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "correct": true,
+            "risk": 0.95,
+            "vendor": "groq",
+            "latency_ms": 1050,
+            "scores": {
+              "safe": 0.0194,
+              "phishing": 0.9223,
+              "spam": 0.0194,
+              "threat": 0.0194,
+              "bullying": 0.0194
+            }
+          },
+          {
+            "id": "phi_03",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "correct": true,
+            "risk": 0.95,
+            "vendor": "groq",
+            "latency_ms": 1591,
+            "scores": {
+              "safe": 0.0194,
+              "phishing": 0.9223,
+              "spam": 0.0194,
+              "threat": 0.0194,
+              "bullying": 0.0194
+            }
+          },
+          {
+            "id": "phi_04",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "correct": true,
+            "risk": 0.95,
+            "vendor": "groq",
+            "latency_ms": 10913,
+            "scores": {
+              "safe": 0.0194,
+              "phishing": 0.9223,
+              "spam": 0.0194,
+              "threat": 0.0194,
+              "bullying": 0.0194
+            }
+          },
+          {
+            "id": "phi_05",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "correct": true,
+            "risk": 0.95,
+            "vendor": "groq",
+            "latency_ms": 1399,
+            "scores": {
+              "safe": 0.0194,
+              "phishing": 0.9223,
+              "spam": 0.0194,
+              "threat": 0.0194,
+              "bullying": 0.0194
+            }
+          },
+          {
+            "id": "phi_06",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "correct": true,
+            "risk": 0.95,
+            "vendor": "groq",
+            "latency_ms": 1285,
+            "scores": {
+              "safe": 0.0194,
+              "phishing": 0.9223,
+              "spam": 0.0194,
+              "threat": 0.0194,
+              "bullying": 0.0194
+            }
+          },
+          {
+            "id": "phi_07",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "correct": true,
+            "risk": 0.95,
+            "vendor": "groq",
+            "latency_ms": 2782,
+            "scores": {
+              "safe": 0.0194,
+              "phishing": 0.9223,
+              "spam": 0.0194,
+              "threat": 0.0194,
+              "bullying": 0.0194
+            }
+          },
+          {
+            "id": "phi_08",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "correct": true,
+            "risk": 0.95,
+            "vendor": "groq",
+            "latency_ms": 894,
+            "scores": {
+              "safe": 0.0194,
+              "phishing": 0.9223,
+              "spam": 0.0194,
+              "threat": 0.0194,
+              "bullying": 0.0194
+            }
+          },
+          {
+            "id": "phi_09",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "correct": true,
+            "risk": 0.95,
+            "vendor": "groq",
+            "latency_ms": 1152,
+            "scores": {
+              "safe": 0.0194,
+              "phishing": 0.9223,
+              "spam": 0.0194,
+              "threat": 0.0194,
+              "bullying": 0.0194
+            }
+          },
+          {
+            "id": "phi_10",
+            "truth": "phishing",
+            "predicted": "phishing",
+            "correct": true,
+            "risk": 0.95,
+            "vendor": "groq",
+            "latency_ms": 2184,
+            "scores": {
+              "safe": 0.0194,
+              "phishing": 0.9223,
+              "spam": 0.0194,
+              "threat": 0.0194,
+              "bullying": 0.0194
             }
           }
         ]

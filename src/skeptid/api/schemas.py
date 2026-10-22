@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 class MessageAnalysisRequest(BaseModel):
     """Request payload for text message analysis."""
     text: str = Field(..., max_length=20000, description="Raw text to evaluate (max 20,000 chars)")
+    use_external: bool = Field(True, description="Whether to invoke external provider")
 
 TextAnalysisRequest = MessageAnalysisRequest
 
@@ -42,6 +43,7 @@ class VerdictResponse(BaseModel):
     evidence: list[EvidenceSchema]
     limits_note: str = "Risk score with evidence, not proof."
     validated: bool = True
+    external_used: bool = False
 
 class FeedbackRequest(BaseModel):
     """User feedback on analysis verdict."""

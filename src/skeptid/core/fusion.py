@@ -171,6 +171,8 @@ def fuse_results(
         for r in all_results
     ]
 
+    external_used = any(r.provider_id == "external" and r.ok for r in all_results)
+
     return Verdict(
         id=analysis_id or str(uuid.uuid4()),
         modality=modality,
@@ -185,4 +187,5 @@ def fuse_results(
         evidence=list(displayed.evidence),
         limits_note="Risk score with evidence, not proof.",
         validated=is_validated,
+        external_used=external_used,
     )

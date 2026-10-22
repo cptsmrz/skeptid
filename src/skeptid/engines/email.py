@@ -176,7 +176,12 @@ class EmailEngine:
         overall_attachment_risk = max(attachment_risks) if attachment_risks else 0.0
         return round(overall_attachment_risk, 4), evidence, attachment_summaries
 
-    async def analyze(self, raw_eml_bytes: bytes, filename: str | None = None) -> Verdict:
+    async def analyze(
+        self,
+        raw_eml_bytes: bytes,
+        filename: str | None = None,
+        use_external: bool = True,
+    ) -> Verdict:
         """Execute full email message analysis with in-lane fusion."""
         # 1. Parse message
         plain_text, html_text, msg, raw_attachments = self.parse_eml(raw_eml_bytes)
@@ -187,6 +192,7 @@ class EmailEngine:
             modality=Modality.TEXT,
             text=clean_text,
             filename=filename,
+            use_external=use_external,
         )
         text_verdict = await self.orchestrator.analyze(body_input)
         text_risk = text_verdict.risk
@@ -243,4 +249,5 @@ class EmailEngine:
             evidence=combined_evidence,
             limits_note="Risk score with evidence, not proof. Email risk fused from body (60%), URL (15%), headers (15%), and attachments (10%).",
             validated=text_verdict.validated,
+            external_used=text_verdict.external_used,
         )

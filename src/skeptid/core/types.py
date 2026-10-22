@@ -51,6 +51,7 @@ class AnalysisInput:
     raw_bytes: bytes | None = None
     filename: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    use_external: bool = True
 
 @dataclass
 class Verdict:
@@ -68,3 +69,4 @@ class Verdict:
     evidence: list[Evidence]
     limits_note: str = "Risk score with evidence, not proof."
     validated: bool = True
+    external_used: bool = False
