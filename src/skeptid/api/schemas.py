@@ -18,7 +18,9 @@ TextAnalysisRequest = MessageAnalysisRequest
 class EvidenceSchema(BaseModel):
     """Forensic evidence entry."""
 
-    kind: Literal["span", "heatmap", "frame_score", "metric", "flag"]
+    kind: Literal[
+        "span", "heatmap", "frame_score", "metric", "flag", "spectrum", "hop_trace", "hex_entropy"
+    ]
     description: str
     payload: dict[str, Any]
 

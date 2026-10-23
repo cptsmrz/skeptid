@@ -141,6 +141,16 @@ def detect_media_type(data: bytes) -> tuple[str, str]:
     if data[:4] == b"RIFF" and data[8:12] == b"AVI ":
         return "video", "avi"
 
+    # Check audio
+    if data[:4] == b"RIFF" and data[8:12] == b"WAVE":
+        return "audio", "wav"
+    if data[:3] == b"ID3" or data[:2] in (b"\xff\xfb", b"\xff\xf3", b"\xff\xf2"):
+        return "audio", "mp3"
+    if data[:4] == b"OggS":
+        return "audio", "ogg"
+    if data[:4] == b"fLaC":
+        return "audio", "flac"
+
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="Unsupported media format. Magic bytes must match JPEG, PNG, WebP (image) or MP4, WebM, AVI (video).",

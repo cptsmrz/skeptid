@@ -18,7 +18,7 @@
         <nav class="nav" aria-label="Desk sections">
           <a href="#desk" aria-current="page">Desk</a>
           <a href="#records" id="records-link">Records</a>
-          <span class="is-disabled" aria-disabled="true">Audio <span class="soon">soon</span></span>
+          <a href="#desk" id="audio-nav-link" title="Voice & audio deepfake inspection">Audio</a>
         </nav>
         <span id="mock-chip" class="chip mock" hidden>MOCK</span>
         <label class="external-toggle"><input id="include-external" type="checkbox" checked> Include external service</label>
@@ -64,16 +64,16 @@
 
         <section class="lane is-empty" id="media-lane" data-lane="media">
           <div class="tray" id="media-tray" tabindex="0" role="group" aria-label="Media file drop zone. Press Enter to choose a file.">
-            <div class="tray-label">Media intake</div>
+            <div class="tray-label">Media & Audio intake</div>
             <div class="tray-body">
-              <p class="muted">Drop an image or video, or choose a file.</p>
+              <p class="muted">Drop an image, video, or audio file, or choose a file.</p>
               <div class="row">
                 <button type="button" class="secondary" id="media-choose">Choose file</button>
-                <input id="media-file" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/x-msvideo,.jpg,.jpeg,.png,.webp,.mp4,.mov,.avi" hidden>
+                <input id="media-file" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/x-msvideo,audio/wav,audio/mpeg,audio/ogg,.jpg,.jpeg,.png,.webp,.mp4,.mov,.avi,.wav,.mp3,.ogg,.flac" hidden>
                 <span class="file-name mono" id="media-filename"></span>
                 <button type="button" class="primary" id="media-analyze">Analyse</button>
               </div>
-              <p class="muted media-limits">JPG, PNG, WebP up to 10 MB · MP4, MOV, AVI up to 50 MB and 60 seconds</p>
+              <p class="muted media-limits">Images up to 10 MB · Video & Audio up to 50 MB</p>
               <span class="chip privacy" id="media-privacy">Privacy status appears with the analysis result</span>
             </div>
           </div>

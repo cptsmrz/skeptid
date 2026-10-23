@@ -866,3 +866,57 @@ th.num {
     background: var(--surface);
   }
 }
+
+/* SKEPTID-KAVACH: Reactive DEFCON Threat Ambiance & Audio Visualization */
+body.ambiance-threat {
+  box-shadow: inset 0 0 120px rgba(255, 51, 102, 0.22);
+  border-top: 3px solid #ff3366;
+}
+
+body.ambiance-warning {
+  box-shadow: inset 0 0 120px rgba(255, 184, 0, 0.18);
+  border-top: 3px solid #ffb800;
+}
+
+body.ambiance-legit {
+  box-shadow: inset 0 0 120px rgba(178, 246, 1, 0.16);
+  border-top: 3px solid #b2f601;
+}
+
+.audio-visual {
+  padding: 1rem 0;
+}
+
+.audio-player-control {
+  width: 100%;
+  margin: 0.75rem 0 1rem;
+  height: 38px;
+}
+
+.spectrogram-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 72px;
+  padding: 8px 10px;
+  margin: 0.5rem 0 1rem;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
+}
+
+body.theme-dark .spectrogram-bars {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.spec-bar {
+  flex: 1;
+  background: #34495e;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s ease;
+  min-height: 4px;
+}
+
+body.theme-dark .spec-bar {
+  background: #62c0f6;
+}
+

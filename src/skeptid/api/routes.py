@@ -234,6 +234,16 @@ async def analyze_media(
             providers=orchestrator.providers.get(Modality.IMAGE, {}),
         )
         verdict = await v_engine.analyze(file_bytes, filename=filename)
+    elif media_type == "audio":
+        from skeptid.engines.audio import AudioEngine
+
+        a_engine = AudioEngine(orchestrator)
+        verdict = await a_engine.analyze(file_bytes, filename=filename)
+    elif media_type == "binary":
+        from skeptid.engines.binary import BinaryEngine
+
+        b_engine = BinaryEngine(orchestrator)
+        verdict = await b_engine.analyze(file_bytes, filename=filename)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -241,6 +251,86 @@ async def analyze_media(
         )
 
     # Shadow-mode logging and persistent record in SQLite
+    db.record_analysis(verdict)
+
+    return VerdictResponse(
+        id=verdict.id,
+        modality=verdict.modality.value,
+        label=verdict.label,
+        risk=verdict.risk,
+        level=verdict.level,
+        confidence=verdict.confidence,
+        disagreement=verdict.disagreement,
+        primary_provider=verdict.primary_provider,
+        mock=verdict.mock,
+        providers=[
+            {
+                "id": getattr(p, "provider_id", None)
+                or (p.get("id") if isinstance(p, dict) else "unknown"),
+                "ok": getattr(p, "ok", None) if not isinstance(p, dict) else p.get("ok", True),
+                "risk": getattr(p, "risk", None) if not isinstance(p, dict) else p.get("risk", 0.0),
+                "model_version": getattr(p, "model_version", None)
+                if not isinstance(p, dict)
+                else p.get("model_version", "unknown"),
+                "latency_ms": getattr(p, "latency_ms", None)
+                if not isinstance(p, dict)
+                else p.get("latency_ms", 0),
+                "error": getattr(p, "error", None) if not isinstance(p, dict) else p.get("error"),
+                "validated": getattr(p, "validated", None)
+                if not isinstance(p, dict)
+                else p.get("validated"),
+            }
+            for p in verdict.providers
+        ],
+        evidence=[
+            {
+                "kind": ev.kind,
+                "description": ev.description,
+                "payload": ev.payload,
+            }
+            for ev in verdict.evidence
+        ],
+        limits_note=verdict.limits_note,
+        validated=verdict.validated,
+        external_used=verdict.external_used,
+    )
+
+
+@router.post(
+    "/api/binary/analyze",
+    response_model=VerdictResponse,
+    dependencies=[Depends(check_rate_limit)],
+    tags=["Analysis"],
+)
+async def analyze_binary(
+    request: Request,
+    orchestrator: Orchestrator = Depends(get_orchestrator),
+    db: SkeptidDatabase = Depends(get_db),
+) -> VerdictResponse:
+    """Analyze raw binary, executable, or opaque files in the Binary/Hex Lane."""
+    content_type = request.headers.get("content-type", "")
+    if "multipart/form-data" not in content_type:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Content-Type must be multipart/form-data with a 'file' field.",
+        )
+
+    form = await request.form()
+    uploaded_file = form.get("file")
+    if not uploaded_file or not hasattr(uploaded_file, "read"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Multipart request must contain a 'file' field.",
+        )
+
+    file_bytes = await uploaded_file.read()
+    filename = getattr(uploaded_file, "filename", "payload.bin")
+
+    from skeptid.engines.binary import BinaryEngine
+
+    b_engine = BinaryEngine(orchestrator)
+    verdict = await b_engine.analyze(file_bytes, filename=filename)
+
     db.record_analysis(verdict)
 
     return VerdictResponse(

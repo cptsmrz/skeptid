@@ -13,6 +13,7 @@ class Modality(str, Enum):
     IMAGE = "image"
     VIDEO = "video"
     AUDIO = "audio"
+    BINARY = "binary"
 
 
 class RiskLevel(str, Enum):
@@ -25,13 +26,17 @@ class RiskLevel(str, Enum):
 
 TEXT_LABELS: list[str] = ["safe", "phishing", "spam", "threat", "bullying"]
 IMAGE_LABELS: list[str] = ["authentic", "filtered", "ai_edited", "ai_generated"]
+AUDIO_LABELS: list[str] = ["authentic", "synthetic", "cloned", "manipulated"]
+BINARY_LABELS: list[str] = ["clean", "suspicious", "anomalous", "malicious"]
 
 
 @dataclass
 class Evidence:
     """Verifiable forensic evidence explaining a detection signal."""
 
-    kind: Literal["span", "heatmap", "frame_score", "metric", "flag"]
+    kind: Literal[
+        "span", "heatmap", "frame_score", "metric", "flag", "spectrum", "hop_trace", "hex_entropy"
+    ]
     description: str
     payload: dict[str, Any]
 

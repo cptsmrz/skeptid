@@ -232,7 +232,8 @@
   function mediaKind(file) {
     var name = (file && file.name || "").toLowerCase();
     if (/\.(jpe?g|png|webp)$/.test(name)) return "image";
-    if (/\.(mp4|mov|avi)$/.test(name)) return "video";
+    if (/\.(mp4|mov|avi|webm)$/.test(name)) return "video";
+    if (/\.(wav|mp3|ogg|flac|m4a)$/.test(name)) return "audio";
     return "";
   }
 
@@ -481,9 +482,17 @@
     return html;
   }
 
+  function applyThreatAmbiance(level) {
+    document.body.classList.remove("ambiance-threat", "ambiance-warning", "ambiance-legit");
+    if (level === "HIGH") document.body.classList.add("ambiance-threat");
+    else if (level === "MEDIUM") document.body.classList.add("ambiance-warning");
+    else if (level === "LOW") document.body.classList.add("ambiance-legit");
+  }
+
   function renderResult(v, sourceText) {
     var mock = v.mock === true;
     els.mockChip.hidden = !(MOCK || mock);
+    applyThreatAmbiance(v.level);
     var html = "<div class=\"result-head\">";
     html += "<div><span class=\"verdict\" data-level=\"" + showField(v.level) + "\">" +
       showField(v.level) + "</span>";
@@ -526,6 +535,7 @@
   function renderMediaResult(v, file) {
     var mock = v.mock === true;
     els.mockChip.hidden = !(MOCK || mock);
+    applyThreatAmbiance(v.level);
     var html = "<div class=\"result-head\"><div><span class=\"verdict\" data-level=\"" + showField(v.level) + "\">" + showField(v.level) + "</span>";
     if (mock) html += " <span class=\"chip mock\">MOCK</span>";
     html += "<p class=\"muted\">" + showField(v.label) + " · " + showField(v.modality) + "</p></div><div class=\"meta\"><div class=\"caps\">" + caseRef(v.id) + "</div><button class=\"copy-id ghost\" type=\"button\" data-id=\"" + showField(v.id) + "\">Copy ID</button></div></div>";
@@ -534,13 +544,39 @@
     html += "<p class=\"chip privacy\">" + privacyText(v.external_used) + "</p>";
     var evidence = Array.isArray(v.evidence) ? v.evidence : [];
     var heat = evidence.find(function (ev) { return ev.kind === "heatmap" && ev.payload && ev.payload.png_b64; });
-    if (mediaKind(file) === "image") {
+    var kind = mediaKind(file);
+
+    if (kind === "image") {
       var src = media.objectUrl || URL.createObjectURL(file);
       var mapRaw = heat ? String(heat.payload.png_b64) : "";
       var mapSrc = mapRaw.length < 4000000 && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(mapRaw) ? mapRaw : mapRaw.length < 4000000 && /^[A-Za-z0-9+/=]+$/.test(mapRaw) ? "data:image/png;base64," + mapRaw : "";
       html += "<div class=\"section media-visual\"><h3>Forensic anomaly map</h3><div class=\"anomaly-wrap\"><img class=\"media-preview\" src=\"" + src + "\" alt=\"Uploaded image\">" + (mapSrc ? "<img class=\"anomaly-layer\" src=\"" + mapSrc + "\" alt=\"Forensic anomaly overlay\" style=\"opacity:.55\">" : "") + "</div>";
       if (mapSrc) html += "<label class=\"opacity-control\">Map opacity <input type=\"range\" min=\"0\" max=\"1\" step=\"0.05\" value=\"0.55\"></label>";
       else html += "<p class=\"muted\">No forensic anomaly map was returned for this file.</p>";
+      html += "<p class=\"media-caption\">" + escapeHtml(file.name) + " · " + file.size + " bytes</p></div>";
+    } else if (kind === "audio") {
+      var audioUrl = media.objectUrl || URL.createObjectURL(file);
+      var specEv = evidence.find(function (ev) { return ev.kind === "spectrum"; });
+      var bands = specEv && specEv.payload && specEv.payload.band_energies || [];
+      html += "<div class=\"section media-visual audio-visual\"><h3>Voice & acoustic forensics</h3>";
+      html += "<audio class=\"audio-player-control\" controls src=\"" + audioUrl + "\"></audio>";
+      if (bands.length) {
+        html += "<p class=\"muted\" style=\"margin-top:8px\">16-band Mel power distribution</p><div class=\"spectrogram-bars\" role=\"img\" aria-label=\"Audio frequency distribution\">";
+        var maxB = Math.max.apply(null, bands.concat([0.01]));
+        bands.forEach(function (b, bIdx) {
+          var hPct = Math.round((b / maxB) * 100);
+          html += "<div class=\"spec-bar\" style=\"height:" + Math.max(8, hPct) + "%\" title=\"Band " + (bIdx + 1) + ": " + b + "\"></div>";
+        });
+        html += "</div>";
+      }
+      var flags = evidence.filter(function (ev) { return ev.kind === "flag"; });
+      if (flags.length) {
+        html += "<div class=\"why-flagged-section\"><h4 style=\"margin-top:10px\">Acoustic indicators</h4><ul class=\"why-flagged\">";
+        flags.forEach(function (fl) {
+          html += "<li>" + escapeHtml(fl.description) + "</li>";
+        });
+        html += "</ul></div>";
+      }
       html += "<p class=\"media-caption\">" + escapeHtml(file.name) + " · " + file.size + " bytes</p></div>";
     } else {
       var videoUrl = media.objectUrl || URL.createObjectURL(file);
@@ -983,9 +1019,10 @@
     media.file = null;
     els.mediaName.textContent = "";
     var kind = mediaKind(file);
-    if (!kind) { mediaFailure("Use a JPG, PNG, WebP, MP4, MOV, or AVI file."); return; }
+    if (!kind) { mediaFailure("Use a JPG, PNG, WebP, MP4, MOV, AVI, WAV, or MP3 file."); return; }
     if (kind === "image" && file.size > 10 * 1024 * 1024) { mediaFailure("This image is larger than 10 MB."); return; }
     if (kind === "video" && file.size > 50 * 1024 * 1024) { mediaFailure("This video is larger than 50 MB."); return; }
+    if (kind === "audio" && file.size > 50 * 1024 * 1024) { mediaFailure("This audio file is larger than 50 MB."); return; }
     media.file = file;
     media.pendingName = file.name;
     media.duration = null;
