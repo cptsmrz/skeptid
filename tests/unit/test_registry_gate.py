@@ -20,7 +20,9 @@ def test_registry_gate_refuses_when_classes_missing(monkeypatch: pytest.MonkeyPa
     gate_met, candidate, reasons = check_gate("text", "text_incomplete")
     assert gate_met is False
     assert candidate == "text_incomplete"
-    assert any("missing classes" in r.lower() or "coverage incomplete" in r.lower() for r in reasons)
+    assert any(
+        "missing classes" in r.lower() or "coverage incomplete" in r.lower() for r in reasons
+    )
 
 
 def test_promote_raises_when_gate_unmet(monkeypatch: pytest.MonkeyPatch) -> None:

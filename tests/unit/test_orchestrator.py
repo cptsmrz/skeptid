@@ -12,6 +12,7 @@ from skeptid.providers.mock import MockProvider
 
 class HangingProvider(MockProvider):
     """Provider that hangs to test timeout handling."""
+
     async def analyze(self, payload: AnalysisInput) -> ProviderResult:
         await asyncio.sleep(2.0)
         return await super().analyze(payload)
@@ -28,7 +29,10 @@ async def test_fallback_order() -> None:
     p_open = MockProvider("opensource", Modality.TEXT)
     p_ext = MockProvider("external", Modality.TEXT)
 
-    orchestrator = Orchestrator(config=cfg, providers={Modality.TEXT: {"own": p_own, "opensource": p_open, "external": p_ext}})
+    orchestrator = Orchestrator(
+        config=cfg,
+        providers={Modality.TEXT: {"own": p_own, "opensource": p_open, "external": p_ext}},
+    )
     inp = AnalysisInput(modality=Modality.TEXT, text="Test fallback order")
 
     verdict = await orchestrator.analyze(inp)
@@ -47,7 +51,9 @@ async def test_all_providers_fail_raises_503_error() -> None:
     p_own = MockProvider("own", Modality.TEXT, force_error="Fail 1")
     p_open = MockProvider("opensource", Modality.TEXT, force_error="Fail 2")
 
-    orchestrator = Orchestrator(config=cfg, providers={Modality.TEXT: {"own": p_own, "opensource": p_open}})
+    orchestrator = Orchestrator(
+        config=cfg, providers={Modality.TEXT: {"own": p_own, "opensource": p_open}}
+    )
     inp = AnalysisInput(modality=Modality.TEXT, text="Should fail completely")
 
     with pytest.raises(AllProvidersFailedError):
@@ -62,7 +68,9 @@ async def test_provider_timeout_handled() -> None:
     p_hang = HangingProvider("hanging", Modality.TEXT)
     p_fallback = MockProvider("fallback", Modality.TEXT)
 
-    orchestrator = Orchestrator(config=cfg, providers={Modality.TEXT: {"hanging": p_hang, "fallback": p_fallback}})
+    orchestrator = Orchestrator(
+        config=cfg, providers={Modality.TEXT: {"hanging": p_hang, "fallback": p_fallback}}
+    )
     inp = AnalysisInput(modality=Modality.TEXT, text="Timeout test")
 
     verdict = await orchestrator.analyze(inp)
@@ -114,7 +122,12 @@ async def test_orchestrator_disagreement_detection() -> None:
     )
     orchestrator = Orchestrator(
         config=cfg,
-        providers={Modality.TEXT: {"p_high": HighRiskProvider("p_high", Modality.TEXT), "p_low": LowRiskProvider("p_low", Modality.TEXT)}},
+        providers={
+            Modality.TEXT: {
+                "p_high": HighRiskProvider("p_high", Modality.TEXT),
+                "p_low": LowRiskProvider("p_low", Modality.TEXT),
+            }
+        },
     )
     inp = AnalysisInput(modality=Modality.TEXT, text="Disagreement sample")
     verdict = await orchestrator.analyze(inp)

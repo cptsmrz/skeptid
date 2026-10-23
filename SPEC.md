@@ -102,33 +102,45 @@ skeptid/
 ## 4. Core contracts (`core/types.py`, `core/interfaces.py`)
 
 ```python
-class Modality(str, Enum): TEXT="text"; EMAIL="email"; IMAGE="image"; VIDEO="video"; AUDIO="audio"
+class Modality(str, Enum):
+    TEXT = "text"
+    EMAIL = "email"
+    IMAGE = "image"
+    VIDEO = "video"
+    AUDIO = "audio"
 
-TEXT_LABELS  = ["safe","phishing","spam","threat","bullying"]
-IMAGE_LABELS = ["authentic","filtered","ai_edited","ai_generated"]
+
+TEXT_LABELS = ["safe", "phishing", "spam", "threat", "bullying"]
+IMAGE_LABELS = ["authentic", "filtered", "ai_edited", "ai_generated"]
+
 
 @dataclass
 class Evidence:
-    kind: Literal["span","heatmap","frame_score","metric","flag"]
+    kind: Literal["span", "heatmap", "frame_score", "metric", "flag"]
     description: str
-    payload: dict            # span: {start,end,weight}; heatmap: {png_b64}; frame_score: {t,score}
+    payload: dict  # span: {start,end,weight}; heatmap: {png_b64}; frame_score: {t,score}
+
 
 @dataclass
 class ProviderResult:
-    provider_id: str                 # "external" | "opensource" | "own"
+    provider_id: str  # "external" | "opensource" | "own"
     ok: bool
-    label_scores: dict[str,float]    # calibrated probabilities over the modality's labels
-    risk: float                      # 0..1 = 1 - P(safe/authentic)
+    label_scores: dict[str, float]  # calibrated probabilities over the modality's labels
+    risk: float  # 0..1 = 1 - P(safe/authentic)
     evidence: list[Evidence]
     latency_ms: int
     model_version: str
-    coverage: list[str]              # labels this model was actually trained/able to predict
-    validated: bool = True           # False for heuristic or unevaluated providers; UI shows a "not validated" tag
+    coverage: list[str]  # labels this model was actually trained/able to predict
+    validated: bool = (
+        True  # False for heuristic or unevaluated providers; UI shows a "not validated" tag
+    )
     error: str | None = None
+
 
 class Provider(Protocol):
     id: str
     modality: Modality
+
     async def analyze(self, payload: "AnalysisInput") -> ProviderResult: ...
     async def health(self) -> bool: ...
 ```

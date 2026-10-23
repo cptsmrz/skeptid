@@ -6,6 +6,7 @@ from dataclasses import dataclass
 @dataclass
 class AnalysisRecord:
     """Persistent summary of an analysis verdict."""
+
     id: str
     modality: str
     label: str
@@ -21,6 +22,7 @@ class AnalysisRecord:
 @dataclass
 class ProviderRunRecord:
     """Shadow-mode log of an individual provider execution."""
+
     analysis_id: str
     provider_id: str
     ok: bool
@@ -34,6 +36,7 @@ class ProviderRunRecord:
 @dataclass
 class FeedbackRecord:
     """User feedback submission tagged source=demo."""
+
     analysis_id: str
     correct: bool
     true_label: str | None = None

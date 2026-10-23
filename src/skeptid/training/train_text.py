@@ -34,13 +34,13 @@ def extract_ngrams(text: str) -> list[str]:
     for i in range(len(words)):
         ngrams.append(f"w:{words[i]}")
         if i + 1 < len(words):
-            ngrams.append(f"w:{words[i]}_{words[i+1]}")
+            ngrams.append(f"w:{words[i]}_{words[i + 1]}")
 
     # Character n-grams (3-5) with boundary markers
     norm = f" {text.lower()} "
     for n in (3, 4, 5):
         for i in range(len(norm) - n + 1):
-            ngrams.append(f"c:{norm[i:i+n]}")
+            ngrams.append(f"c:{norm[i : i + n]}")
 
     return ngrams
 
@@ -63,9 +63,7 @@ class TfidfVectorizerPure:
             doc_counts.update(unique_ngrams)
 
         # Filter by min_df and select top max_features
-        valid = [
-            (term, count) for term, count in doc_counts.items() if count >= self.min_df
-        ]
+        valid = [(term, count) for term, count in doc_counts.items() if count >= self.min_df]
         valid.sort(key=lambda x: x[1], reverse=True)
         top_terms = valid[: self.max_features]
 
@@ -128,9 +126,7 @@ class LogisticRegressionPure:
 
         # Class weights: total / (num_classes * count)
         n_classes = len(self.classes)
-        class_weights = {
-            cls: n_samples / (n_classes * counts[cls]) for cls in self.classes
-        }
+        class_weights = {cls: n_samples / (n_classes * counts[cls]) for cls in self.classes}
 
         # Initialize weights and biases
         self.weights = {cls: [0.0] * vocab_size for cls in self.classes}
@@ -159,10 +155,7 @@ class LogisticRegressionPure:
 
                 # Softmax
                 exp_sum = sum(math.exp(z - max_logit) for z in logits.values())
-                probs = {
-                    cls: math.exp(logits[cls] - max_logit) / exp_sum
-                    for cls in self.classes
-                }
+                probs = {cls: math.exp(logits[cls] - max_logit) / exp_sum for cls in self.classes}
 
                 # Cross-entropy loss
                 p_target = max(1e-12, probs[target_cls])
@@ -192,10 +185,7 @@ class LogisticRegressionPure:
             max_logit = max(max_logit, z)
 
         exp_sum = sum(math.exp(z - max_logit) for z in logits.values())
-        return {
-            cls: round(math.exp(logits[cls] - max_logit) / exp_sum, 4)
-            for cls in self.classes
-        }
+        return {cls: round(math.exp(logits[cls] - max_logit) / exp_sum, 4) for cls in self.classes}
 
 
 def load_dataset_csv(path: Path) -> tuple[list[str], list[str]]:
@@ -216,9 +206,7 @@ def load_dataset_csv(path: Path) -> tuple[list[str], list[str]]:
 def train_model() -> Path:
     """Train the baseline text model and serialize to models/text_v1.joblib."""
     if not TRAIN_FILE.exists():
-        raise FileNotFoundError(
-            f"Train file not found at {TRAIN_FILE}. Run prepare_text first."
-        )
+        raise FileNotFoundError(f"Train file not found at {TRAIN_FILE}. Run prepare_text first.")
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     print(f"[train_text] Loading training data from {TRAIN_FILE}...")

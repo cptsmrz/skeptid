@@ -4,6 +4,7 @@ Lazy-loads third-party transformer models with clean fallback when optional depe
 are not installed.
 """
 
+from pathlib import Path
 import time
 from typing import Any
 
@@ -35,26 +36,35 @@ class OpenSourceTextProvider(Provider):
         self._initialized = True
         try:
             from transformers import pipeline  # type: ignore[import-untyped]
+
             self._detoxify = pipeline(
                 "text-classification",
                 model="unitary/toxic-bert",
+                model_kwargs={"local_files_only": True},
                 top_k=None,
             )
-        except (ImportError, ModuleNotFoundError, RuntimeError, ValueError, OSError):
-            try:
-                from detoxify import Detoxify  # type: ignore[import-untyped]
-                self._detoxify = Detoxify("original")
-            except (ImportError, ModuleNotFoundError, RuntimeError, ValueError, OSError):
+        except (ImportError, ModuleNotFoundError, RuntimeError, ValueError, OSError, Exception):
+            ckpt = Path.home() / ".cache" / "torch" / "hub" / "checkpoints" / "toxic_original-c1212f89.ckpt"
+            if ckpt.exists() and ckpt.stat().st_size > 400_000_000:
+                try:
+                    from detoxify import Detoxify  # type: ignore[import-untyped]
+
+                    self._detoxify = Detoxify("original")
+                except (ImportError, ModuleNotFoundError, RuntimeError, ValueError, OSError, Exception):
+                    self._detoxify = None
+            else:
                 self._detoxify = None
 
         try:
             from transformers import pipeline  # type: ignore[import-untyped]
+
             self._text_shield = pipeline(
                 "text-classification",
                 model="telecomsxchange/OpenTextShield",
+                model_kwargs={"local_files_only": True},
                 top_k=None,
             )
-        except (ImportError, ModuleNotFoundError, RuntimeError, ValueError, OSError):
+        except (ImportError, ModuleNotFoundError, RuntimeError, ValueError, OSError, Exception):
             self._text_shield = None
 
         return self._detoxify is not None or self._text_shield is not None
@@ -89,15 +99,27 @@ class OpenSourceTextProvider(Provider):
         # 1. Detoxify predictions (threat, bullying)
         if self._detoxify is not None:
             try:
-                raw = self._detoxify.predict(text) if hasattr(self._detoxify, "predict") else self._detoxify(text[:512])
+                raw = (
+                    self._detoxify.predict(text)
+                    if hasattr(self._detoxify, "predict")
+                    else self._detoxify(text[:512])
+                )
                 if isinstance(raw, dict):
                     threat_score = float(raw.get("threat", 0.0))
                     insult_score = float(raw.get("insult", 0.0))
                     severe_score = float(raw.get("severe_toxicity", 0.0))
                     tox_score = float(raw.get("toxicity", 0.0))
                 else:
-                    items = raw[0] if isinstance(raw, list) and len(raw) > 0 and isinstance(raw[0], list) else raw
-                    scores = {str(d.get("label", "")).lower(): float(d.get("score", 0.0)) for d in items if isinstance(d, dict)}
+                    items = (
+                        raw[0]
+                        if isinstance(raw, list) and len(raw) > 0 and isinstance(raw[0], list)
+                        else raw
+                    )
+                    scores = {
+                        str(d.get("label", "")).lower(): float(d.get("score", 0.0))
+                        for d in items
+                        if isinstance(d, dict)
+                    }
                     threat_score = scores.get("threat", 0.0)
                     insult_score = scores.get("insult", 0.0)
                     severe_score = scores.get("severe_toxic", scores.get("severe_toxicity", 0.0))
@@ -132,7 +154,11 @@ class OpenSourceTextProvider(Provider):
             try:
                 shield_res = self._text_shield(text[:512])
                 # shield_res with top_k=None returns list of dicts or list of list of dicts
-                scores_list = shield_res[0] if isinstance(shield_res, list) and isinstance(shield_res[0], list) else shield_res
+                scores_list = (
+                    shield_res[0]
+                    if isinstance(shield_res, list) and isinstance(shield_res[0], list)
+                    else shield_res
+                )
                 for item in scores_list:
                     lbl = str(item.get("label", "")).lower()
                     conf = float(item.get("score", 0.0))

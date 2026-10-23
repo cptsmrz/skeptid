@@ -1,30 +1,37 @@
 """Configuration loading and validation for SKEPTID."""
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
+from dotenv import load_dotenv
 
 
 @dataclass
 class ModalityConfig:
     """Routing and fallback settings for a specific modality."""
+
     primary: str
     chain: list[str]
     shadow: bool = True
     timeout_s: float = 8.0
     top_k_to_external: int | None = None
 
+
 @dataclass
 class ThresholdsConfig:
     """Categorical risk score threshold boundaries."""
+
     low_max: float = 0.35
     medium_max: float = 0.70
+
 
 @dataclass
 class SkeptidConfig:
     """Top-level configuration for SKEPTID runtime."""
+
     text: ModalityConfig = field(
         default_factory=lambda: ModalityConfig(
             primary="own", chain=["own", "opensource", "external"], shadow=True, timeout_s=8.0
@@ -73,10 +80,15 @@ def _parse_modality(raw: dict[str, Any], default_timeout: float = 8.0) -> Modali
 
 
 def load_config(path: str | Path | None = None) -> SkeptidConfig:
-    """Load SKEPTID configuration from YAML file or return defaults."""
+    """Load SKEPTID configuration from YAML file or return defaults.
+
+    SKEPTID_MODE in environment or .env takes precedence over YAML mode.
+    """
+    load_dotenv()
     config_path = Path(path) if path else Path("config/skeptid.yaml")
     if not config_path.exists():
-        return SkeptidConfig()
+        env_mode = os.getenv("SKEPTID_MODE")
+        return SkeptidConfig(mode=env_mode if env_mode else "mock")
 
     with open(config_path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
@@ -87,11 +99,14 @@ def load_config(path: str | Path | None = None) -> SkeptidConfig:
         medium_max=float(thresholds_data.get("medium_max", 0.70)),
     )
 
+    env_mode = os.getenv("SKEPTID_MODE")
+    resolved_mode = env_mode.strip().lower() if env_mode else str(data.get("mode", "mock"))
+
     return SkeptidConfig(
         text=_parse_modality(data.get("text", {}), default_timeout=8.0),
         email=_parse_modality(data.get("email", {}), default_timeout=8.0),
         image=_parse_modality(data.get("image", {}), default_timeout=12.0),
         video=_parse_modality(data.get("video", {}), default_timeout=12.0),
-        mode=str(data.get("mode", "mock")),
+        mode=resolved_mode,
         thresholds=thresholds,
     )

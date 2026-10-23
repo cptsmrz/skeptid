@@ -50,12 +50,16 @@ def run_smoke_tests() -> int:
     img = Image.new("RGB", (128, 128), color=(100, 150, 200))
     buf = io.BytesIO()
     img.save(buf, format="JPEG")
-    r = client.post("/api/media/analyze", files={"file": ("test.jpg", buf.getvalue(), "image/jpeg")})
+    r = client.post(
+        "/api/media/analyze", files={"file": ("test.jpg", buf.getvalue(), "image/jpeg")}
+    )
     if r.status_code != 200:
         print(f"Media image analysis failed: {r.status_code} {r.text}")
         return 1
     media_img_data = r.json()
-    if media_img_data.get("modality") != "image" or not any(ev.get("kind") == "heatmap" for ev in media_img_data.get("evidence", [])):
+    if media_img_data.get("modality") != "image" or not any(
+        ev.get("kind") == "heatmap" for ev in media_img_data.get("evidence", [])
+    ):
         print(f"Unexpected media image response: {media_img_data}")
         return 1
     print(f"  -> Passed Image (label={media_img_data['label']}, risk={media_img_data['risk']})")
@@ -70,7 +74,9 @@ def run_smoke_tests() -> int:
     if media_vid_data.get("modality") != "video":
         print(f"Unexpected media video response: {media_vid_data}")
         return 1
-    print(f"  -> Passed Video (label={media_vid_data['label']}, risk={media_vid_data['risk']}, frames={len(media_vid_data.get('evidence', []))})")
+    print(
+        f"  -> Passed Video (label={media_vid_data['label']}, risk={media_vid_data['risk']}, frames={len(media_vid_data.get('evidence', []))})"
+    )
 
     # 4. Feedback submission
     print("Testing /api/feedback...")
@@ -105,4 +111,3 @@ def run_smoke_tests() -> int:
 
 if __name__ == "__main__":
     sys.exit(run_smoke_tests())
-

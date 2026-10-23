@@ -81,9 +81,7 @@ def test_analyze_message_unsupported_file(client: TestClient) -> None:
 
 
 def test_analyze_message_all_providers_fail_returns_503() -> None:
-    cfg = SkeptidConfig(
-        text=ModalityConfig(primary="p1", chain=["p1"], timeout_s=1.0)
-    )
+    cfg = SkeptidConfig(text=ModalityConfig(primary="p1", chain=["p1"], timeout_s=1.0))
     failing_provider = MockProvider("p1", Modality.TEXT, force_error="Provider failure")
     orchestrator = Orchestrator(
         config=cfg,

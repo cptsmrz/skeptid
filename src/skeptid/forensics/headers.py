@@ -88,7 +88,16 @@ def analyze_headers(msg: EmailMessage) -> tuple[float, list[Evidence], dict]:
 
     # Signal 3: Display Name Spoofing
     # e.g., From: "PayPal Security" <security@mail-attacker.com>
-    known_brands = ["paypal", "microsoft", "google", "apple", "amazon", "chase", "wells fargo", "bank of america"]
+    known_brands = [
+        "paypal",
+        "microsoft",
+        "google",
+        "apple",
+        "amazon",
+        "chase",
+        "wells fargo",
+        "bank of america",
+    ]
     lower_name = from_name.lower()
     for brand in known_brands:
         if brand in lower_name and brand not in from_domain:
@@ -97,7 +106,11 @@ def analyze_headers(msg: EmailMessage) -> tuple[float, list[Evidence], dict]:
                 Evidence(
                     kind="flag",
                     description=f"Display name spoofing: name references '{brand}' but domain is '@{from_domain}'",
-                    payload={"indicator": "display_name_spoof", "brand": brand, "domain": from_domain},
+                    payload={
+                        "indicator": "display_name_spoof",
+                        "brand": brand,
+                        "domain": from_domain,
+                    },
                 )
             )
 

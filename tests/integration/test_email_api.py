@@ -59,12 +59,13 @@ def test_analyze_email_eml_phishing_acceptance(client: TestClient) -> None:
 
     # 2. Evidence from all components (Text, URL, Header, Attachment)
     evidence_descriptions = [e["description"] for e in data["evidence"]]
-    assert any("Reply-To" in desc or "SPF" in desc or "spoof" in desc for desc in evidence_descriptions), (
-        "Expected Header evidence in verdict"
-    )
-    assert any("URL" in desc or "IP-literal" in desc or "Link text spoof" in desc for desc in evidence_descriptions), (
-        "Expected URL evidence in verdict"
-    )
+    assert any(
+        "Reply-To" in desc or "SPF" in desc or "spoof" in desc for desc in evidence_descriptions
+    ), "Expected Header evidence in verdict"
+    assert any(
+        "URL" in desc or "IP-literal" in desc or "Link text spoof" in desc
+        for desc in evidence_descriptions
+    ), "Expected URL evidence in verdict"
     assert any("attachment" in desc.lower() for desc in evidence_descriptions), (
         "Expected attachment evidence in verdict"
     )

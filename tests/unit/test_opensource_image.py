@@ -9,7 +9,9 @@ from skeptid.core.types import IMAGE_LABELS, AnalysisInput, Modality
 from skeptid.providers.opensource_image import OpenSourceImageProvider
 
 
-def _create_sample_png_bytes(width: int = 64, height: int = 64, color: tuple[int, int, int] = (100, 150, 200)) -> bytes:
+def _create_sample_png_bytes(
+    width: int = 64, height: int = 64, color: tuple[int, int, int] = (100, 150, 200)
+) -> bytes:
     img = Image.new("RGB", (width, height), color=color)
     buf = io.BytesIO()
     img.save(buf, format="PNG")

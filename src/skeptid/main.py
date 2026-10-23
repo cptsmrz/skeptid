@@ -13,7 +13,7 @@ from skeptid.api.security import SecurityHeadersMiddleware
 from skeptid.core.config import SkeptidConfig, load_config
 from skeptid.core.orchestrator import Orchestrator
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 def create_app(config: SkeptidConfig | None = None) -> FastAPI:

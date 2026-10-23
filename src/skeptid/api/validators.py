@@ -145,4 +145,3 @@ def detect_media_type(data: bytes) -> tuple[str, str]:
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="Unsupported media format. Magic bytes must match JPEG, PNG, WebP (image) or MP4, WebM, AVI (video).",
     )
-

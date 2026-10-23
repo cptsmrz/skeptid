@@ -12,7 +12,9 @@ from skeptid.core.types import Modality
 from skeptid.engines.video import VideoEngine
 
 
-def create_synthetic_video_bytes(num_frames: int = 24, fps: float = 24.0, alternating: bool = False) -> bytes:
+def create_synthetic_video_bytes(
+    num_frames: int = 24, fps: float = 24.0, alternating: bool = False
+) -> bytes:
     """Helper to generate a minimal valid MP4 video in memory."""
     fd, path = tempfile.mkstemp(suffix=".mp4")
     os.close(fd)

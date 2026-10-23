@@ -85,7 +85,7 @@ class OwnTextProvider(Provider):
         for i in range(len(words)):
             ngrams.append((f"w:{words[i]}", words[i]))
             if i + 1 < len(words):
-                ngrams.append((f"w:{words[i]}_{words[i+1]}", f"{words[i]} {words[i+1]}"))
+                ngrams.append((f"w:{words[i]}_{words[i + 1]}", f"{words[i]} {words[i + 1]}"))
 
         norm = f" {text.lower()} "
         for n in (3, 4, 5):
@@ -124,14 +124,10 @@ class OwnTextProvider(Provider):
             max_logit = max(max_logit, z)
 
         exp_sum = sum(math.exp(z - max_logit) for z in logits.values())
-        trained_scores = {
-            cls: math.exp(logits[cls] - max_logit) / exp_sum for cls in classes
-        }
+        trained_scores = {cls: math.exp(logits[cls] - max_logit) / exp_sum for cls in classes}
 
         # Report strictly the labels the model was trained on
-        label_scores = {
-            cls: round(prob, 4) for cls, prob in trained_scores.items()
-        }
+        label_scores = {cls: round(prob, 4) for cls, prob in trained_scores.items()}
         tot = sum(label_scores.values())
         if tot > 0:
             label_scores = {k: round(v / tot, 4) for k, v in label_scores.items()}
@@ -156,9 +152,7 @@ class OwnTextProvider(Provider):
                             # Locate spans in original text
                             pattern = re.escape(raw_sub)
                             for match in re.finditer(pattern, text, re.IGNORECASE):
-                                candidate_spans.append(
-                                    (score, raw_sub, match.start(), match.end())
-                                )
+                                candidate_spans.append((score, raw_sub, match.start(), match.end()))
 
         # Deduplicate and sort spans by contribution
         candidate_spans.sort(key=lambda x: x[0], reverse=True)

@@ -60,7 +60,9 @@ def download_public_hf_datasets(force: bool = False) -> None:
                 ][:2000]
                 combined_phish = phish_rows + safe_rows
                 _write_csv(phish_path, combined_phish)
-                print(f"[prepare_text] Auto-downloaded HF phishing dataset: {len(phish_rows)} phishing, {len(safe_rows)} safe matched rows")
+                print(
+                    f"[prepare_text] Auto-downloaded HF phishing dataset: {len(phish_rows)} phishing, {len(safe_rows)} safe matched rows"
+                )
             except (OSError, RuntimeError, ValueError, KeyError) as e:
                 print(f"[prepare_text] Notice: could not auto-download HF phishing: {e}")
 
@@ -74,18 +76,28 @@ def download_public_hf_datasets(force: bool = False) -> None:
                 with open(cb_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 cb_rows = [
-                    {"text": x.get("instruction", "").strip(), "label": "bullying", "source": "hf_cyberbullying"}
+                    {
+                        "text": x.get("instruction", "").strip(),
+                        "label": "bullying",
+                        "source": "hf_cyberbullying",
+                    }
                     for x in data
                     if x.get("output") != "not_cyberbullying" and x.get("instruction", "").strip()
                 ]
                 safe_cb_rows = [
-                    {"text": x.get("instruction", "").strip(), "label": "safe", "source": "hf_cyberbullying"}
+                    {
+                        "text": x.get("instruction", "").strip(),
+                        "label": "safe",
+                        "source": "hf_cyberbullying",
+                    }
                     for x in data
                     if x.get("output") == "not_cyberbullying" and x.get("instruction", "").strip()
                 ]
                 combined_cb = cb_rows + safe_cb_rows
                 _write_csv(cb_path, combined_cb)
-                print(f"[prepare_text] Auto-downloaded HF cyberbullying dataset: {len(cb_rows)} bullying, {len(safe_cb_rows)} safe matched rows")
+                print(
+                    f"[prepare_text] Auto-downloaded HF cyberbullying dataset: {len(cb_rows)} bullying, {len(safe_cb_rows)} safe matched rows"
+                )
             except (OSError, RuntimeError, ValueError, KeyError) as e:
                 print(f"[prepare_text] Notice: could not auto-download HF cyberbullying: {e}")
 
@@ -98,7 +110,9 @@ def download_public_hf_datasets(force: bool = False) -> None:
                 )
                 df_j = pd.read_csv(j_file)
                 threats = df_j[df_j["threat"] == 1]
-                toxic = df_j[(df_j["threat"] == 0) & ((df_j["toxic"] == 1) | (df_j["insult"] == 1))].head(1500)
+                toxic = df_j[
+                    (df_j["threat"] == 0) & ((df_j["toxic"] == 1) | (df_j["insult"] == 1))
+                ].head(1500)
                 benign = df_j[
                     (df_j["toxic"] == 0)
                     & (df_j["severe_toxic"] == 0)
@@ -123,7 +137,9 @@ def download_public_hf_datasets(force: bool = False) -> None:
                         j_rows.append({"text": t, "label": "safe", "source": "jigsaw_toxic"})
 
                 _write_csv(jigsaw_path, j_rows)
-                print(f"[prepare_text] Auto-downloaded HF Jigsaw dataset: {len(threats)} threat, {len(toxic)} bullying, {len(benign)} safe matched rows")
+                print(
+                    f"[prepare_text] Auto-downloaded HF Jigsaw dataset: {len(threats)} threat, {len(toxic)} bullying, {len(benign)} safe matched rows"
+                )
             except (OSError, RuntimeError, ValueError, KeyError) as e:
                 print(f"[prepare_text] Notice: could not auto-download HF Jigsaw: {e}")
     except ImportError:
@@ -189,11 +205,13 @@ def load_manual_datasets() -> list[dict[str, str]]:
                 if not text:
                     continue
                 if row.get("label"):
-                    records.append({
-                        "text": text,
-                        "label": row["label"].strip(),
-                        "source": (row.get("source") or "jigsaw_toxic").strip(),
-                    })
+                    records.append(
+                        {
+                            "text": text,
+                            "label": row["label"].strip(),
+                            "source": (row.get("source") or "jigsaw_toxic").strip(),
+                        }
+                    )
                 else:
                     threat_val = int(row.get("threat") or 0)
                     toxic_val = int(row.get("toxic") or 0)
@@ -205,7 +223,9 @@ def load_manual_datasets() -> list[dict[str, str]]:
                     if threat_val == 1:
                         records.append({"text": text, "label": "threat", "source": "jigsaw_toxic"})
                     elif toxic_val == 1 or insult_val == 1 or severe_val == 1:
-                        records.append({"text": text, "label": "bullying", "source": "jigsaw_toxic"})
+                        records.append(
+                            {"text": text, "label": "bullying", "source": "jigsaw_toxic"}
+                        )
                     elif (
                         threat_val == 0
                         and toxic_val == 0
@@ -293,8 +313,8 @@ def stratified_split(
             train_rows.extend(shuffled)
         else:
             train_rows.extend(shuffled[:n_train])
-            val_rows.extend(shuffled[n_train:n_train + n_val])
-            holdout_rows.extend(shuffled[n_train + n_val:])
+            val_rows.extend(shuffled[n_train : n_train + n_val])
+            holdout_rows.extend(shuffled[n_train + n_val :])
 
     rng.shuffle(train_rows)
     rng.shuffle(val_rows)
@@ -347,7 +367,9 @@ def prepare_text_data(holdout_version: str = "v2", force_rebuild: bool = True) -
     missing_labels = [lbl for lbl in TEXT_LABELS if lbl not in present_labels]
     if missing_labels:
         print(f"[prepare_text] Notice: Missing classes among TEXT_LABELS: {missing_labels}")
-        print("[prepare_text] See DATA.md for instructions on placing raw data files to enable them.")
+        print(
+            "[prepare_text] See DATA.md for instructions on placing raw data files to enable them."
+        )
 
     # 5. Stratified splits: 70% train, 15% val, 15% holdout
     train_rows, val_rows, holdout_rows = stratified_split(deduped, seed=42)

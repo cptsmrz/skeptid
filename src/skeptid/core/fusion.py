@@ -16,7 +16,7 @@ from skeptid.core.types import (
 
 def compute_normalised_entropy(label_scores: dict[str, float]) -> float:
     """Calculate normalized Shannon entropy in [0, 1].
-    
+
     Returns 0.0 when certainty is maximal (1.0 for one class),
     and 1.0 when probabilities are uniformly distributed.
     """
@@ -94,7 +94,7 @@ def fuse_email_components(
     attachment_risk: float | None = None,
 ) -> float:
     """Combine email components with renormalised weights and floor rule.
-    
+
     Formula: 0.60 text + 0.15 url + 0.15 header + 0.10 attachment
     Floor rule: if any present component >= 0.90, final risk >= 0.80.
     """
@@ -132,6 +132,7 @@ def fuse_results(
     analysis_id: str | None = None,
     low_max: float = 0.35,
     medium_max: float = 0.70,
+    is_mock: bool | None = None,
 ) -> Verdict:
     """Fuse provider results into the final Verdict schema."""
     ok_results = [r for r in all_results if r.ok]
@@ -152,7 +153,10 @@ def fuse_results(
     confidence = compute_confidence(scores, disagreement, len(ok_results))
 
     # Detect if any provider ran in mock mode
-    is_mock = any(r.model_version == "mock" for r in all_results)
+    if is_mock is None:
+        is_mock = any(
+            r.model_version == "mock" or r.model_version.startswith("mock") for r in all_results
+        )
 
     is_validated = getattr(displayed, "validated", None)
     if is_validated is None:
@@ -173,10 +177,17 @@ def fuse_results(
 
     # SPEC 6.5: external_used is true whenever content was sent to a vendor,
     # even if the call failed, timed out, or was blocked.
-    # It is false only when nothing left the server (own/opensource only, or budget exceeded).
-    external_used = any(
-        r.provider_id == "external" and r.model_version != "external:budget_exceeded"
-        for r in all_results
+    # It is false whenever the external provider is mock, when nothing left the server,
+    # or when budget was exceeded.
+    external_used = bool(
+        not is_mock
+        and any(
+            r.provider_id == "external"
+            and not r.model_version.startswith("mock")
+            and r.model_version != "external:budget_exceeded"
+            and not getattr(r, "mock", False)
+            for r in all_results
+        )
     )
 
     return Verdict(

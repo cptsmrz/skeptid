@@ -1,6 +1,5 @@
 """Unit tests for OwnTextProvider (P3)."""
 
-
 import pytest
 
 from skeptid.core.types import TEXT_LABELS, AnalysisInput, Modality

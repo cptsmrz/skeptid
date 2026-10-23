@@ -72,12 +72,12 @@ def transform_text_with_bundle(text: str, vectorizer_bundle: dict[str, Any]) -> 
     for i in range(len(words)):
         ngrams.append(f"w:{words[i]}")
         if i + 1 < len(words):
-            ngrams.append(f"w:{words[i]}_{words[i+1]}")
+            ngrams.append(f"w:{words[i]}_{words[i + 1]}")
 
     norm = f" {text.lower()} "
     for n in (3, 4, 5):
         for i in range(len(norm) - n + 1):
-            ngrams.append(f"c:{norm[i:i+n]}")
+            ngrams.append(f"c:{norm[i : i + n]}")
 
     counts = Counter(ngrams)
     sparse_vec: dict[int, float] = {}
@@ -115,10 +115,7 @@ def predict_proba_with_bundle(
         max_logit = max(max_logit, z)
 
     exp_sum = sum(math.exp(z - max_logit) for z in logits.values())
-    return {
-        cls: math.exp(logits[cls] - max_logit) / exp_sum
-        for cls in classes
-    }
+    return {cls: math.exp(logits[cls] - max_logit) / exp_sum for cls in classes}
 
 
 def evaluate_model() -> dict[str, Any]:
@@ -133,7 +130,9 @@ def evaluate_model() -> dict[str, Any]:
 
     x_holdout, y_true, sources, sha256_hash = load_holdout_data()
     n_total = len(y_true)
-    print(f"[evaluate] Evaluating {version} on {n_total} frozen holdout samples ({HOLDOUT_FILE.name}, {HOLDOUT_VERSION})...")
+    print(
+        f"[evaluate] Evaluating {version} on {n_total} frozen holdout samples ({HOLDOUT_FILE.name}, {HOLDOUT_VERSION})..."
+    )
 
     y_pred: list[str] = []
     for text in x_holdout:
@@ -159,7 +158,11 @@ def evaluate_model() -> dict[str, Any]:
 
         precision = round(tp / (tp + fp), 4) if (tp + fp) > 0 else 0.0
         recall = round(tp / (tp + fn), 4) if (tp + fn) > 0 else 0.0
-        f1 = round(2 * precision * recall / (precision + recall), 4) if (precision + recall) > 0 else 0.0
+        f1 = (
+            round(2 * precision * recall / (precision + recall), 4)
+            if (precision + recall) > 0
+            else 0.0
+        )
 
         per_class[cls] = {
             "precision": precision,
@@ -203,6 +206,7 @@ def evaluate_model() -> dict[str, Any]:
     probe_details: list[dict[str, Any]] = []
     try:
         from tests.fixtures.emails import FIXTURES
+
         for item in FIXTURES:
             feat = transform_text_with_bundle(item["text"], vec_bundle)
             probs = predict_proba_with_bundle(feat, clf_bundle)
@@ -210,13 +214,15 @@ def evaluate_model() -> dict[str, Any]:
             is_ok = pred_label == item["label"]
             if is_ok:
                 probe_correct += 1
-            probe_details.append({
-                "id": item["id"],
-                "truth": item["label"],
-                "predicted": pred_label,
-                "confidence": round(probs[pred_label], 4),
-                "correct": is_ok,
-            })
+            probe_details.append(
+                {
+                    "id": item["id"],
+                    "truth": item["label"],
+                    "predicted": pred_label,
+                    "confidence": round(probs[pred_label], 4),
+                    "correct": is_ok,
+                }
+            )
     except ImportError as e:
         print(f"[evaluate] Notice: Could not import email fixtures: {e}")
 
@@ -252,7 +258,9 @@ def evaluate_model() -> dict[str, Any]:
     print(f"Macro-F1: {macro_f1:.4f}")
     print("Per-class Metrics:")
     for cls, m in per_class.items():
-        print(f"  [{cls}] Precision: {m['precision']:.4f}, Recall: {m['recall']:.4f}, F1: {m['f1_score']:.4f}, Support: {m['support']}")
+        print(
+            f"  [{cls}] Precision: {m['precision']:.4f}, Recall: {m['recall']:.4f}, F1: {m['f1_score']:.4f}, Support: {m['support']}"
+        )
     print(f"Coverage: {present_holdout_classes}")
     print(f"Missing Classes: {missing_classes}")
     print(f"Promotion Gate Status: {'MET' if gate_met else 'REFUSED'}")
@@ -261,10 +269,14 @@ def evaluate_model() -> dict[str, Any]:
             print(f"  Reason: {r}")
 
     if probe_details:
-        print(f"\n--- 20-Email Probe: {probe_correct}/{len(probe_details)} correct ({probe_record['accuracy']*100:.1f}%) ---")
+        print(
+            f"\n--- 20-Email Probe: {probe_correct}/{len(probe_details)} correct ({probe_record['accuracy'] * 100:.1f}%) ---"
+        )
         for p in probe_details:
             status_tag = "OK" if p["correct"] else "WRONG"
-            print(f"  {p['id']:<8} truth={p['truth']:<10} pred={p['predicted']:<10} conf={p['confidence']:.3f} [{status_tag}]")
+            print(
+                f"  {p['id']:<8} truth={p['truth']:<10} pred={p['predicted']:<10} conf={p['confidence']:.3f} [{status_tag}]"
+            )
     print("--------------------------------\n")
 
     # Update models/registry.json

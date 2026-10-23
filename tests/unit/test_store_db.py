@@ -29,7 +29,13 @@ def test_record_analysis_and_shadow_logging(temp_db: SkeptidDatabase) -> None:
         mock=False,
         providers=[
             {"id": "own", "ok": True, "risk": 0.88, "latency_ms": 15, "model_version": "text_v1"},
-            {"id": "opensource", "ok": True, "risk": 0.85, "latency_ms": 250, "model_version": "p2"},
+            {
+                "id": "opensource",
+                "ok": True,
+                "risk": 0.85,
+                "latency_ms": 250,
+                "model_version": "p2",
+            },
         ],
         evidence=[Evidence(kind="span", description="test", payload={})],
     )

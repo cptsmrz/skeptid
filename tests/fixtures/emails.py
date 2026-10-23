@@ -119,7 +119,6 @@ FIXTURES = [
             "The Support Team"
         ),
     },
-
     # ── Phishing emails (label="phishing") ────────────────────────────────────
     {
         "id": "phi_01",

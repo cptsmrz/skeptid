@@ -188,17 +188,20 @@ class SkeptidDatabase:
         with self._connection() as conn:
             analyses_count = conn.execute("SELECT COUNT(*) FROM analyses").fetchone()[0]
             feedback_count = conn.execute("SELECT COUNT(*) FROM feedback").fetchone()[0]
-            disagreements = conn.execute("SELECT COUNT(*) FROM analyses WHERE disagreement = 1").fetchone()[0]
+            disagreements = conn.execute(
+                "SELECT COUNT(*) FROM analyses WHERE disagreement = 1"
+            ).fetchone()[0]
 
             agreement_rate = (
-                round(1.0 - (disagreements / analyses_count), 4)
-                if analyses_count > 0
-                else 1.0
+                round(1.0 - (disagreements / analyses_count), 4) if analyses_count > 0 else 1.0
             )
 
             # Provider latencies
             provider_stats: dict[str, Any] = {}
-            p_ids = [r[0] for r in conn.execute("SELECT DISTINCT provider_id FROM provider_runs").fetchall()]
+            p_ids = [
+                r[0]
+                for r in conn.execute("SELECT DISTINCT provider_id FROM provider_runs").fetchall()
+            ]
             for pid in p_ids:
                 latencies = [
                     r[0]

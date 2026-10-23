@@ -223,11 +223,16 @@ async def analyze_media(
 
     if media_type == "image":
         from skeptid.engines.image import ImageEngine
+
         engine = ImageEngine(orchestrator)
         verdict = await engine.analyze(file_bytes, filename=filename)
     elif media_type == "video":
         from skeptid.engines.video import VideoEngine
-        v_engine = VideoEngine(config=orchestrator.config)
+
+        v_engine = VideoEngine(
+            config=orchestrator.config,
+            providers=orchestrator.providers.get(Modality.IMAGE, {}),
+        )
         verdict = await v_engine.analyze(file_bytes, filename=filename)
     else:
         raise HTTPException(
@@ -250,13 +255,20 @@ async def analyze_media(
         mock=verdict.mock,
         providers=[
             {
-                "id": getattr(p, "provider_id", None) or (p.get("id") if isinstance(p, dict) else "unknown"),
+                "id": getattr(p, "provider_id", None)
+                or (p.get("id") if isinstance(p, dict) else "unknown"),
                 "ok": getattr(p, "ok", None) if not isinstance(p, dict) else p.get("ok", True),
                 "risk": getattr(p, "risk", None) if not isinstance(p, dict) else p.get("risk", 0.0),
-                "model_version": getattr(p, "model_version", None) if not isinstance(p, dict) else p.get("model_version", "unknown"),
-                "latency_ms": getattr(p, "latency_ms", None) if not isinstance(p, dict) else p.get("latency_ms", 0),
+                "model_version": getattr(p, "model_version", None)
+                if not isinstance(p, dict)
+                else p.get("model_version", "unknown"),
+                "latency_ms": getattr(p, "latency_ms", None)
+                if not isinstance(p, dict)
+                else p.get("latency_ms", 0),
                 "error": getattr(p, "error", None) if not isinstance(p, dict) else p.get("error"),
-                "validated": getattr(p, "validated", None) if not isinstance(p, dict) else p.get("validated"),
+                "validated": getattr(p, "validated", None)
+                if not isinstance(p, dict)
+                else p.get("validated"),
             }
             for p in verdict.providers
         ],

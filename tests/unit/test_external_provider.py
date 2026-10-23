@@ -55,7 +55,9 @@ class FakeVendorAdapter(BaseVendorAdapter):
 async def test_external_provider_mock_mode():
     """Verify deterministic mock response when in mock mode."""
     provider = ExternalProvider(is_mock=True)
-    res = await provider.analyze(AnalysisInput(modality=Modality.TEXT, text="Suspicious wire transfer request"))
+    res = await provider.analyze(
+        AnalysisInput(modality=Modality.TEXT, text="Suspicious wire transfer request")
+    )
     assert res.ok
     assert res.model_version == "mock"
     assert res.provider_id == "external"
@@ -192,14 +194,19 @@ async def test_orchestrator_use_external_flag():
     orchestrator = Orchestrator()
 
     # Default use_external=True
-    inp_default = AnalysisInput(modality=Modality.TEXT, text="Test email content", use_external=True)
+    inp_default = AnalysisInput(
+        modality=Modality.TEXT, text="Test email content", use_external=True
+    )
     v1 = await orchestrator.analyze(inp_default)
     p_ids = [p["id"] for p in v1.providers]
     assert "external" in p_ids
-    assert v1.external_used is True
+    # In mock mode, the external provider is mock so external_used must be False
+    assert v1.external_used is False
 
     # Disabled use_external=False
-    inp_disabled = AnalysisInput(modality=Modality.TEXT, text="Test email content", use_external=False)
+    inp_disabled = AnalysisInput(
+        modality=Modality.TEXT, text="Test email content", use_external=False
+    )
     v2 = await orchestrator.analyze(inp_disabled)
     p_ids_disabled = [p["id"] for p in v2.providers]
     assert "external" not in p_ids_disabled
@@ -272,7 +279,13 @@ async def test_external_used_true_on_safety_block():
     own_result = ProviderResult(
         provider_id="own",
         ok=True,
-        label_scores={"safe": 0.05, "phishing": 0.9, "spam": 0.02, "threat": 0.02, "bullying": 0.01},
+        label_scores={
+            "safe": 0.05,
+            "phishing": 0.9,
+            "spam": 0.02,
+            "threat": 0.02,
+            "bullying": 0.01,
+        },
         risk=0.95,
         evidence=[],
         latency_ms=25,
@@ -332,3 +345,33 @@ async def test_external_used_false_when_budget_exceeded():
         "external_used must be False when budget_exceeded means nothing left the server"
     )
 
+
+@pytest.mark.asyncio
+async def test_external_used_false_when_external_is_mock() -> None:
+    """Requirement: external_used must be false whenever the external provider is mock."""
+    from skeptid.core.fusion import fuse_results
+    from skeptid.providers.mock import MockProvider
+
+    mock_ext = MockProvider(provider_id="external", modality=Modality.TEXT)
+    res_mock = await mock_ext.analyze(
+        AnalysisInput(modality=Modality.TEXT, text="Test mock external")
+    )
+    assert res_mock.model_version == "mock"
+
+    # 1. When is_mock is True
+    v1 = fuse_results(
+        displayed=res_mock,
+        all_results=[res_mock],
+        modality=Modality.TEXT,
+        is_mock=True,
+    )
+    assert v1.external_used is False, "external_used must be False when is_mock is True"
+
+    # 2. When is_mock is False but external result model_version is mock
+    v2 = fuse_results(
+        displayed=res_mock,
+        all_results=[res_mock],
+        modality=Modality.TEXT,
+        is_mock=False,
+    )
+    assert v2.external_used is False, "external_used must be False when external provider is mock"

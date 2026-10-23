@@ -73,6 +73,50 @@ def test_analyze_media_video_mp4(client: TestClient) -> None:
     assert "heatmap" in kinds
 
 
+def test_analyze_media_video_frame_scores_timeline_and_providers(client: TestClient) -> None:
+    """Requirement: Video verdict must include a frame_score evidence entry per sampled
+
+    frame (time in seconds, score) plus peak-frame heatmap, and at least two providers.
+    """
+    # 24 frames at 12 fps = 2.0s duration; samples min(16, 24) = 16 frames (>= 8)
+    mp4_bytes = create_synthetic_video_bytes(num_frames=24, fps=12.0)
+    files = {"file": ("real_sample.mp4", mp4_bytes, "video/mp4")}
+
+    resp = client.post("/api/media/analyze", files=files)
+    assert resp.status_code == 200
+    data = resp.json()
+
+    # 1. Assert at least 8 frame_score entries
+    frame_score_evs = [ev for ev in data["evidence"] if ev["kind"] == "frame_score"]
+    assert len(frame_score_evs) >= 8, (
+        f"Expected >= 8 frame_score entries, got {len(frame_score_evs)}"
+    )
+    for ev in frame_score_evs:
+        payload = ev["payload"]
+        assert "t" in payload, "Missing timestamp in frame_score payload"
+        assert "score" in payload, "Missing score in frame_score payload"
+        assert isinstance(payload["t"], (int, float))
+        assert isinstance(payload["score"], (int, float))
+        assert 0.0 <= payload["score"] <= 1.0
+
+    # 2. Assert peak-frame heatmap evidence exists
+    heatmap_evs = [ev for ev in data["evidence"] if ev["kind"] == "heatmap"]
+    assert len(heatmap_evs) >= 1, "Expected peak-frame heatmap evidence"
+    heatmap_payload = heatmap_evs[0]["payload"]
+    assert "png_b64" in heatmap_payload
+    assert len(heatmap_payload["png_b64"]) > 50
+
+    # 3. Assert at least two providers shown
+    providers = data["providers"]
+    assert len(providers) >= 2, f"Expected at least two providers, got {len(providers)}"
+    provider_ids = [p["id"] for p in providers]
+    assert "own" in provider_ids
+    assert "opensource" in provider_ids
+
+    # 4. Assert external_used is False when external provider is mock/not used
+    assert data["external_used"] is False
+
+
 def test_analyze_media_unsupported_format(client: TestClient) -> None:
     files = {"file": ("notes.txt", b"Plain text content not an image", "text/plain")}
     resp = client.post("/api/media/analyze", files=files)

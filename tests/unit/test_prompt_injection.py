@@ -86,7 +86,9 @@ async def test_prompt_injection_persona_switch_with_dangerous_attachment():
     verdict = await engine.analyze(raw_eml, filename="injection_persona.eml")
 
     assert verdict.label != "safe", f"Expected non-safe verdict, got {verdict.label}"
-    assert verdict.risk >= 0.80, f"Expected floor risk >= 0.80 due to dangerous extension, got {verdict.risk}"
+    assert verdict.risk >= 0.80, (
+        f"Expected floor risk >= 0.80 due to dangerous extension, got {verdict.risk}"
+    )
     descriptions = " ".join(e.description for e in verdict.evidence)
     assert ".exe" in descriptions
 

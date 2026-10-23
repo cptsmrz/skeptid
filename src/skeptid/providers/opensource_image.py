@@ -14,7 +14,6 @@ from PIL import Image
 
 from skeptid.core.interfaces import Provider
 from skeptid.core.types import (
-    IMAGE_LABELS,
     AnalysisInput,
     Evidence,
     Modality,
@@ -52,10 +51,11 @@ class OpenSourceImageProvider(Provider):
             self._classifier = pipeline(
                 "image-classification",
                 model=self.model_name,
+                model_kwargs={"local_files_only": True},
                 top_k=None,
             )
             logger.info("Successfully loaded open-source image model: %s", self.model_name)
-        except (ImportError, ModuleNotFoundError, RuntimeError, ValueError, OSError) as exc:
+        except (ImportError, ModuleNotFoundError, RuntimeError, ValueError, OSError, Exception) as exc:
             logger.warning("Failed to load open-source image model '%s': %s", self.model_name, exc)
             self._classifier = None
 
@@ -91,7 +91,7 @@ class OpenSourceImageProvider(Provider):
                 evidence=[],
                 latency_ms=int((time.perf_counter() - t0) * 1000),
                 model_version=f"vit:{self.model_name}",
-                coverage=list(IMAGE_LABELS),
+                coverage=["authentic", "ai_generated"],
                 error="invalid_or_missing_image_payload",
                 validated=False,
             )
@@ -170,7 +170,7 @@ class OpenSourceImageProvider(Provider):
                 evidence=evidence,
                 latency_ms=latency_ms,
                 model_version=f"vit:{self.model_name}",
-                coverage=list(IMAGE_LABELS),
+                coverage=["authentic", "ai_generated"],
                 validated=False,
             )
 

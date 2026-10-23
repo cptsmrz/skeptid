@@ -125,7 +125,10 @@ class OwnImageProvider(Provider):
                 Evidence(
                     kind="metric",
                     description="High localized ELA compression discrepancy across blocks",
-                    payload={"metric": "high_diff_block_ratio", "score": ela_res.high_diff_block_ratio},
+                    payload={
+                        "metric": "high_diff_block_ratio",
+                        "score": ela_res.high_diff_block_ratio,
+                    },
                 )
             )
         if ela_res.block_variance > 15.0:

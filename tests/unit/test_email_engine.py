@@ -20,7 +20,13 @@ class MockTextAnalysisProvider:
             return ProviderResult(
                 provider_id=self.id,
                 ok=True,
-                label_scores={"safe": 0.05, "phishing": 0.90, "spam": 0.05, "bullying": 0.0, "threat": 0.0},
+                label_scores={
+                    "safe": 0.05,
+                    "phishing": 0.90,
+                    "spam": 0.05,
+                    "bullying": 0.0,
+                    "threat": 0.0,
+                },
                 risk=0.90,
                 evidence=[],
                 coverage=list(TEXT_LABELS),
@@ -30,7 +36,13 @@ class MockTextAnalysisProvider:
         return ProviderResult(
             provider_id=self.id,
             ok=True,
-            label_scores={"safe": 0.95, "phishing": 0.02, "spam": 0.02, "bullying": 0.005, "threat": 0.005},
+            label_scores={
+                "safe": 0.95,
+                "phishing": 0.02,
+                "spam": 0.02,
+                "bullying": 0.005,
+                "threat": 0.005,
+            },
             risk=0.05,
             evidence=[],
             coverage=list(TEXT_LABELS),
@@ -94,8 +106,12 @@ async def test_email_engine_phishing_signals(email_engine: EmailEngine) -> None:
     # Evidence must contain URL and header flags
     kinds = [e.kind for e in verdict.evidence]
     assert "flag" in kinds
-    indicators = [e.payload.get("indicator") for e in verdict.evidence if isinstance(e.payload, dict)]
-    assert any("ip_literal" in ind or "reply_to" in ind or "spoof" in ind for ind in indicators if ind)
+    indicators = [
+        e.payload.get("indicator") for e in verdict.evidence if isinstance(e.payload, dict)
+    ]
+    assert any(
+        "ip_literal" in ind or "reply_to" in ind or "spoof" in ind for ind in indicators if ind
+    )
 
 
 @pytest.mark.asyncio
@@ -120,8 +136,7 @@ async def test_email_dangerous_extension(email_engine: EmailEngine) -> None:
     )
     verdict = await email_engine.analyze(eml, filename="statement.eml")
     assert any(
-        e.payload.get("indicator") == "dangerous_extension"
-        and e.payload.get("extension") == ".scr"
+        e.payload.get("indicator") == "dangerous_extension" and e.payload.get("extension") == ".scr"
         for e in verdict.evidence
     )
     assert verdict.risk >= 0.80

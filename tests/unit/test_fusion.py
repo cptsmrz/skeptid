@@ -51,9 +51,33 @@ def test_classify_risk_level() -> None:
 
 
 def test_disagreement_threshold() -> None:
-    p1 = ProviderResult(provider_id="p1", ok=True, label_scores={}, risk=0.20, evidence=[], latency_ms=10, model_version="m")
-    p2 = ProviderResult(provider_id="p2", ok=True, label_scores={}, risk=0.50, evidence=[], latency_ms=10, model_version="m")
-    p3 = ProviderResult(provider_id="p3", ok=True, label_scores={}, risk=0.75, evidence=[], latency_ms=10, model_version="m")
+    p1 = ProviderResult(
+        provider_id="p1",
+        ok=True,
+        label_scores={},
+        risk=0.20,
+        evidence=[],
+        latency_ms=10,
+        model_version="m",
+    )
+    p2 = ProviderResult(
+        provider_id="p2",
+        ok=True,
+        label_scores={},
+        risk=0.50,
+        evidence=[],
+        latency_ms=10,
+        model_version="m",
+    )
+    p3 = ProviderResult(
+        provider_id="p3",
+        ok=True,
+        label_scores={},
+        risk=0.75,
+        evidence=[],
+        latency_ms=10,
+        model_version="m",
+    )
 
     # Spread is 0.50 - 0.20 = 0.30 <= 0.40 -> no disagreement
     assert check_disagreement([p1, p2]) is False
@@ -69,7 +93,9 @@ def test_email_component_fusion() -> None:
     assert res == pytest.approx(0.205, abs=1e-3)
 
     # Floor rule: any component >= 0.90 forces final risk >= 0.80
-    res_floor = fuse_email_components(text_risk=0.1, url_risk=0.95, header_risk=0.0, attachment_risk=None)
+    res_floor = fuse_email_components(
+        text_risk=0.1, url_risk=0.95, header_risk=0.0, attachment_risk=None
+    )
     assert res_floor >= 0.80
 
 
@@ -79,7 +105,9 @@ def test_fuse_results_verdict_construction() -> None:
         ok=True,
         label_scores={"safe": 0.1, "phishing": 0.9},
         risk=0.9,
-        evidence=[Evidence(kind="span", description="test", payload={"start": 0, "end": 5, "weight": 0.9})],
+        evidence=[
+            Evidence(kind="span", description="test", payload={"start": 0, "end": 5, "weight": 0.9})
+        ],
         latency_ms=12,
         model_version="mock",
     )

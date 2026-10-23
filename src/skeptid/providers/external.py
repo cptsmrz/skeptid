@@ -60,7 +60,9 @@ class BaseVendorAdapter(ABC):
         self.name = name
         self.model_name = model_name
         self.timeout_s = timeout_s
-        self.circuit_breaker = CircuitBreaker(failure_threshold=3, window_seconds=60.0, cooldown_seconds=60.0)
+        self.circuit_breaker = CircuitBreaker(
+            failure_threshold=3, window_seconds=60.0, cooldown_seconds=60.0
+        )
 
     @abstractmethod
     def is_configured(self) -> bool:
@@ -114,7 +116,9 @@ class BaseVendorAdapter(ABC):
                     )
 
                 if resp.status_code in (401, 403):
-                    raise PermissionError(f"Vendor {self.name} authentication failed ({resp.status_code})")
+                    raise PermissionError(
+                        f"Vendor {self.name} authentication failed ({resp.status_code})"
+                    )
 
                 if resp.status_code == 429:
                     raise ResourceWarning(f"Vendor {self.name} rate limited (429)")
@@ -145,7 +149,7 @@ class GeminiVendorAdapter(BaseVendorAdapter):
     """
 
     def __init__(self, model_name: str | None = None, timeout_s: float = 8.0) -> None:
-        resolved = model_name or os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+        resolved = model_name or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
         super().__init__(name="gemini", model_name=resolved, timeout_s=timeout_s)
 
     def is_configured(self) -> bool:
@@ -161,17 +165,18 @@ class GeminiVendorAdapter(BaseVendorAdapter):
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={api_key}"
         headers = {"Content-Type": "application/json"}
         prompt = (
-            f"{TEXT_CLASSIFICATION_SYSTEM_PROMPT}\n\n"
-            f"<ANALYZE_TARGET>\n{text}\n</ANALYZE_TARGET>"
+            f"{TEXT_CLASSIFICATION_SYSTEM_PROMPT}\n\n<ANALYZE_TARGET>\n{text}\n</ANALYZE_TARGET>"
         )
         parts: list[dict[str, Any]] = [{"text": prompt}]
         if raw_bytes:
-            parts.append({
-                "inlineData": {
-                    "mimeType": mime_type or "image/png",
-                    "data": base64.b64encode(raw_bytes).decode("ascii"),
+            parts.append(
+                {
+                    "inlineData": {
+                        "mimeType": mime_type or "image/png",
+                        "data": base64.b64encode(raw_bytes).decode("ascii"),
+                    }
                 }
-            })
+            )
         body = {
             "contents": [{"parts": parts}],
             "generationConfig": {
@@ -283,8 +288,16 @@ class OpenRouterVendorAdapter(BaseVendorAdapter):
         if raw_bytes:
             b64 = base64.b64encode(raw_bytes).decode("ascii")
             user_content = [
-                {"type": "text", "text": f"<ANALYZE_TARGET>\n{text}\n</ANALYZE_TARGET>" if text else "Analyze this image for safety."},
-                {"type": "image_url", "image_url": {"url": f"data:{mime_type or 'image/png'};base64,{b64}"}},
+                {
+                    "type": "text",
+                    "text": f"<ANALYZE_TARGET>\n{text}\n</ANALYZE_TARGET>"
+                    if text
+                    else "Analyze this image for safety.",
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{mime_type or 'image/png'};base64,{b64}"},
+                },
             ]
         else:
             user_content = f"<ANALYZE_TARGET>\n{text}\n</ANALYZE_TARGET>"
@@ -387,9 +400,9 @@ class ExternalProvider(Provider):
             self.adapters = adapters
         else:
             self.adapters = [
-                GeminiVendorAdapter(),
                 GroqVendorAdapter(),
                 OpenRouterVendorAdapter(),
+                GeminiVendorAdapter(),
                 CloudflareVendorAdapter(),
             ]
 
@@ -445,7 +458,13 @@ class ExternalProvider(Provider):
                 ok=True,
                 label_scores=calibrated,
                 risk=risk,
-                evidence=[Evidence(kind="flag", description="Synthetic external evaluation", payload={"mock": True})],
+                evidence=[
+                    Evidence(
+                        kind="flag",
+                        description="Synthetic external evaluation",
+                        payload={"mock": True},
+                    )
+                ],
                 latency_ms=latency_ms,
                 model_version="mock",
                 coverage=list(TEXT_LABELS),
@@ -490,7 +509,9 @@ class ExternalProvider(Provider):
                     continue
 
                 if not self._check_vendor_budget(adapter.name):
-                    errors.append(f"{adapter.name}: per-vendor daily budget exceeded ({self.per_vendor_daily_budget})")
+                    errors.append(
+                        f"{adapter.name}: per-vendor daily budget exceeded ({self.per_vendor_daily_budget})"
+                    )
                     continue
 
                 if adapter.circuit_breaker.is_open(adapter.name):
@@ -562,7 +583,15 @@ class ExternalProvider(Provider):
                     self._cache[cache_key] = res
                     return res
 
-                except (httpx.HTTPError, ValueError, KeyError, RuntimeError, PermissionError, ResourceWarning, OSError) as exc:
+                except (
+                    httpx.HTTPError,
+                    ValueError,
+                    KeyError,
+                    RuntimeError,
+                    PermissionError,
+                    ResourceWarning,
+                    OSError,
+                ) as exc:
                     logger.warning("External vendor '%s' failed: %s", adapter.name, exc)
                     errors.append(f"{adapter.name}: {exc}")
 

@@ -20,10 +20,16 @@ from skeptid.core.types import (
 class AllProvidersFailedError(Exception):
     """Raised when all configured providers for a modality fail."""
 
+
 class CircuitBreaker:
     """In-memory circuit breaker that trips after 3 failures within 60 seconds."""
 
-    def __init__(self, failure_threshold: int = 3, window_seconds: float = 60.0, cooldown_seconds: float = 60.0) -> None:
+    def __init__(
+        self,
+        failure_threshold: int = 3,
+        window_seconds: float = 60.0,
+        cooldown_seconds: float = 60.0,
+    ) -> None:
         self.threshold = failure_threshold
         self.window = window_seconds
         self.cooldown = cooldown_seconds
@@ -90,33 +96,45 @@ class Orchestrator:
                 mod_cfg = self.config.get_modality_config(modality.value)
                 for pid in mod_cfg.chain:
                     if is_live:
-                        if modality == Modality.TEXT:
+                        if modality in (Modality.TEXT, Modality.EMAIL):
                             if pid == "own":
                                 from skeptid.providers.own_text import OwnTextProvider
+
                                 self.providers[modality][pid] = OwnTextProvider(provider_id=pid)
                                 continue
                             elif pid == "opensource":
                                 from skeptid.providers.opensource import OpenSourceTextProvider
-                                self.providers[modality][pid] = OpenSourceTextProvider(provider_id=pid)
+
+                                self.providers[modality][pid] = OpenSourceTextProvider(
+                                    provider_id=pid
+                                )
                                 continue
-                        elif modality == Modality.IMAGE:
+                        elif modality in (Modality.IMAGE, Modality.VIDEO):
                             if pid == "own":
                                 from skeptid.providers.own_image import OwnImageProvider
+
                                 self.providers[modality][pid] = OwnImageProvider(provider_id=pid)
                                 continue
                             elif pid in ("opensource", "opensource_image"):
                                 from skeptid.providers.opensource_image import (
                                     OpenSourceImageProvider,
                                 )
-                                self.providers[modality][pid] = OpenSourceImageProvider(provider_id=pid)
+
+                                self.providers[modality][pid] = OpenSourceImageProvider(
+                                    provider_id=pid
+                                )
                                 continue
 
                         if pid == "external":
                             from skeptid.providers.external import ExternalProvider
-                            self.providers[modality][pid] = ExternalProvider(provider_id=pid, modality=modality)
+
+                            self.providers[modality][pid] = ExternalProvider(
+                                provider_id=pid, modality=modality
+                            )
                             continue
 
                     from skeptid.providers.mock import MockProvider
+
                     self.providers[modality][pid] = MockProvider(
                         provider_id=pid,
                         modality=modality,
@@ -213,9 +231,7 @@ class Orchestrator:
         results: list[ProviderResult] = await asyncio.gather(*tasks)
 
         expected_labels = (
-            set(TEXT_LABELS)
-            if modality in (Modality.TEXT, Modality.EMAIL)
-            else set(IMAGE_LABELS)
+            set(TEXT_LABELS) if modality in (Modality.TEXT, Modality.EMAIL) else set(IMAGE_LABELS)
         )
 
         # Select displayed result: first covering provider in chain order that succeeded (ok=True)

@@ -42,9 +42,17 @@ scratch/
 data/raw/
 data/processed/
 data/holdout/
+data/samples/
 models/*.joblib
+!models/text_v1.joblib
 models/*.pt
 models/*.onnx
+*.pth
+*.safetensors
+*.bin
+*.mp4
+*.mov
+*.avi
 
 # IDEs & OS
 .vscode/

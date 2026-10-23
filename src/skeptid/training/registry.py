@@ -34,7 +34,7 @@ def load_registry() -> dict[str, Any]:
 
 def check_gate(modality: str, version: str | None = None) -> tuple[bool, str, list[str]]:
     """Check whether a model candidate meets the promotion gate.
-    
+
     Returns (gate_met, candidate_version, reasons).
     """
     registry = load_registry()
@@ -47,9 +47,7 @@ def check_gate(modality: str, version: str | None = None) -> tuple[bool, str, li
             candidate_key = version
     else:
         # Latest model for this modality
-        matching = [
-            (k, v) for k, v in models.items() if v.get("modality") == modality
-        ]
+        matching = [(k, v) for k, v in models.items() if v.get("modality") == modality]
         if matching:
             candidate_key = matching[-1][0]
 
@@ -137,8 +135,12 @@ def main() -> int:
 
     # promote command
     promote_parser = subparsers.add_parser("promote", help="Promote candidate model to primary")
-    promote_parser.add_argument("--modality", required=True, choices=["text", "image", "email", "video"])
-    promote_parser.add_argument("--version", required=False, help="Explicit model version to promote")
+    promote_parser.add_argument(
+        "--modality", required=True, choices=["text", "image", "email", "video"]
+    )
+    promote_parser.add_argument(
+        "--version", required=False, help="Explicit model version to promote"
+    )
 
     # status command
     subparsers.add_parser("status", help="Show registry status and metrics")

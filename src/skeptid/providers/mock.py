@@ -57,11 +57,7 @@ class MockProvider(Provider):
         digest = hashlib.sha256(seed_data.encode("utf-8")).hexdigest()
         seed_int = int(digest[:8], 16)
 
-        labels = (
-            TEXT_LABELS
-            if self.modality in (Modality.TEXT, Modality.EMAIL)
-            else IMAGE_LABELS
-        )
+        labels = TEXT_LABELS if self.modality in (Modality.TEXT, Modality.EMAIL) else IMAGE_LABELS
 
         # Generate deterministic pseudorandom values that sum to 1.0
         raw_vals: list[float] = []
@@ -71,9 +67,7 @@ class MockProvider(Provider):
             raw_vals.append((curr % 1000) + 50.0)
 
         total = sum(raw_vals)
-        label_scores = {
-            lbl: round(val / total, 4) for lbl, val in zip(labels, raw_vals)
-        }
+        label_scores = {lbl: round(val / total, 4) for lbl, val in zip(labels, raw_vals)}
 
         # Calculate calibrated risk: 1.0 - safe/authentic
         safe_key = "safe" if "safe" in label_scores else "authentic"
@@ -106,7 +100,9 @@ class MockProvider(Provider):
                 Evidence(
                     kind="heatmap",
                     description="Forensic anomaly map (synthetic)",
-                    payload={"png_b64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="},
+                    payload={
+                        "png_b64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                    },
                 )
             )
 

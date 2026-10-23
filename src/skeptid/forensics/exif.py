@@ -80,7 +80,14 @@ def analyze_exif(image: Image.Image) -> ExifResult:
 
     # Dimension anomaly: exact square 512, 768, 1024 without camera metadata
     w, h = image.size
-    is_generator_dim = (w, h) in [(512, 512), (768, 768), (1024, 1024), (2048, 2048), (1024, 768), (768, 1024)]
+    is_generator_dim = (w, h) in [
+        (512, 512),
+        (768, 768),
+        (1024, 1024),
+        (2048, 2048),
+        (1024, 768),
+        (768, 1024),
+    ]
     dimension_anomaly = is_generator_dim and not has_camera_info
 
     return ExifResult(

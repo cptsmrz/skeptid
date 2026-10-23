@@ -15,7 +15,9 @@ from skeptid.forensics.spectrum import compute_spectrum
 from skeptid.providers.own_image import OwnImageProvider
 
 
-def create_synthetic_image(width: int = 128, height: int = 128, pattern: str = "gradient") -> Image.Image:
+def create_synthetic_image(
+    width: int = 128, height: int = 128, pattern: str = "gradient"
+) -> Image.Image:
     """Helper to create synthetic in-memory test images."""
     if pattern == "gradient":
         arr = np.zeros((height, width, 3), dtype=np.uint8)

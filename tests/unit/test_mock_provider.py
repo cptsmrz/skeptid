@@ -35,7 +35,9 @@ async def test_mock_provider_different_inputs() -> None:
 
 @pytest.mark.asyncio
 async def test_mock_provider_error_handling() -> None:
-    provider = MockProvider(provider_id="mock_test", modality=Modality.TEXT, force_error="Simulated upstream failure")
+    provider = MockProvider(
+        provider_id="mock_test", modality=Modality.TEXT, force_error="Simulated upstream failure"
+    )
     inp = AnalysisInput(modality=Modality.TEXT, text="Hello")
 
     res = await provider.analyze(inp)

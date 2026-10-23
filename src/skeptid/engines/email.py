@@ -58,7 +58,9 @@ class EmailEngine:
         self.orchestrator = orchestrator
         self.own_image_provider = OwnImageProvider()
 
-    def parse_eml(self, raw_bytes: bytes) -> tuple[str, str | None, EmailMessage, list[dict[str, Any]]]:
+    def parse_eml(
+        self, raw_bytes: bytes
+    ) -> tuple[str, str | None, EmailMessage, list[dict[str, Any]]]:
         """Parse raw RFC822 bytes into plain text body, html, msg object, and attachments."""
         msg = email.message_from_bytes(raw_bytes, policy=policy.default)
 
@@ -75,18 +77,24 @@ class EmailEngine:
                     if len(attachments) < MAX_ATTACHMENTS:
                         payload = part.get_payload(decode=True) or b""
                         if len(payload) <= MAX_ATTACHMENT_SIZE_BYTES:
-                            attachments.append({
-                                "filename": part.get_filename() or "attachment",
-                                "content_type": content_type,
-                                "size_bytes": len(payload),
-                                "payload": payload,
-                            })
+                            attachments.append(
+                                {
+                                    "filename": part.get_filename() or "attachment",
+                                    "content_type": content_type,
+                                    "size_bytes": len(payload),
+                                    "payload": payload,
+                                }
+                            )
                 elif content_type == "text/plain" and not plain_text:
                     payload = part.get_payload(decode=True) or b""
-                    plain_text = payload.decode(part.get_content_charset() or "utf-8", errors="replace")
+                    plain_text = payload.decode(
+                        part.get_content_charset() or "utf-8", errors="replace"
+                    )
                 elif content_type == "text/html" and html_text is None:
                     payload = part.get_payload(decode=True) or b""
-                    html_text = payload.decode(part.get_content_charset() or "utf-8", errors="replace")
+                    html_text = payload.decode(
+                        part.get_content_charset() or "utf-8", errors="replace"
+                    )
         else:
             payload = msg.get_payload(decode=True) or b""
             charset = msg.get_content_charset() or "utf-8"
@@ -101,7 +109,9 @@ class EmailEngine:
 
         return plain_text.strip(), html_text, msg, attachments
 
-    async def inspect_attachments(self, raw_attachments: list[dict[str, Any]]) -> tuple[float | None, list[Evidence], list[dict[str, Any]]]:
+    async def inspect_attachments(
+        self, raw_attachments: list[dict[str, Any]]
+    ) -> tuple[float | None, list[Evidence], list[dict[str, Any]]]:
         """Analyze up to 3 attachments for forensic risks and dangerous payloads."""
         if not raw_attachments:
             return None, [], []
@@ -157,21 +167,25 @@ class EmailEngine:
                                 )
                             )
                 except (UnidentifiedImageError, OSError, ValueError) as exc:
-                    logger.debug("Image attachment inspection skipped for %s: %s", att["filename"], exc)
+                    logger.debug(
+                        "Image attachment inspection skipped for %s: %s", att["filename"], exc
+                    )
 
             needs_review = item_risk >= 0.70
             if needs_review and "needs_review" not in flags:
                 flags.append("Attachment needs review")
 
             attachment_risks.append(item_risk)
-            attachment_summaries.append({
-                "filename": att["filename"],
-                "content_type": content_type,
-                "size_bytes": att["size_bytes"],
-                "risk": round(item_risk, 4),
-                "needs_review": needs_review,
-                "flags": flags,
-            })
+            attachment_summaries.append(
+                {
+                    "filename": att["filename"],
+                    "content_type": content_type,
+                    "size_bytes": att["size_bytes"],
+                    "risk": round(item_risk, 4),
+                    "needs_review": needs_review,
+                    "flags": flags,
+                }
+            )
 
         overall_attachment_risk = max(attachment_risks) if attachment_risks else 0.0
         return round(overall_attachment_risk, 4), evidence, attachment_summaries
@@ -204,7 +218,11 @@ class EmailEngine:
         header_risk, header_evidence, _ = analyze_headers(msg)
 
         # 5. Attachment Forensics
-        attachment_risk, attachment_evidence, _attachment_summaries = await self.inspect_attachments(raw_attachments)
+        (
+            attachment_risk,
+            attachment_evidence,
+            _attachment_summaries,
+        ) = await self.inspect_attachments(raw_attachments)
 
         # 6. In-lane Fusion per SPEC section 7 & 6.2:
         # risk = 0.60*text + 0.15*url + 0.15*header + 0.10*attachment
