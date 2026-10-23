@@ -47,10 +47,12 @@ def create_app(config: SkeptidConfig | None = None) -> FastAPI:
     # Include core API routes
     app.include_router(router)
 
-    # Mount static assets if web directory exists
+    # Serve web/ at "/" with html=True so index.html is returned at "/" and
+    # relative asset paths (styles.css, app.js, fonts/*) resolve correctly.
+    # This mount is registered AFTER the API router so /api/* routes take precedence.
     web_dir = Path("web")
     if web_dir.exists() and web_dir.is_dir():
-        app.mount("/static", StaticFiles(directory=str(web_dir)), name="static")
+        app.mount("/", StaticFiles(directory=str(web_dir), html=True), name="static")
 
     # Global unhandled exception handler to prevent leaking internal tracebacks
     @app.exception_handler(Exception)

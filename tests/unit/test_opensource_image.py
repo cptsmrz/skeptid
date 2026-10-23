@@ -1,6 +1,7 @@
 """Unit tests for P2 OpenSource Image Provider adapting Hugging Face ViT."""
 
 import io
+
 import pytest
 from PIL import Image
 

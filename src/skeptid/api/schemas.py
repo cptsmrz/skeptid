@@ -46,10 +46,25 @@ class VerdictResponse(BaseModel):
     external_used: bool = False
 
 class FeedbackRequest(BaseModel):
-    """User feedback on analysis verdict."""
+    """User feedback on analysis verdict.
+
+    If share_example=True and text is provided, the message text is stored
+    in a separate feedback_samples table for retrain use (SPEC §9).
+    Media is never stored — this applies to text modality only.
+    """
     analysis_id: str
     correct: bool
     true_label: str | None = None
+    share_example: bool = Field(
+        False,
+        description="If true, the text of this message will be stored to improve the model. "
+                    "By ticking this option you consent to your message text being used for training.",
+    )
+    text: str | None = Field(
+        None,
+        max_length=20000,
+        description="The message text to share. Only stored when share_example=True.",
+    )
 
 class FeedbackResponse(BaseModel):
     """Feedback submission acknowledgment."""

@@ -74,6 +74,20 @@ class SkeptidDatabase:
                     FOREIGN KEY(analysis_id) REFERENCES analyses(id)
                 )
             """)
+            # feedback_samples: text stored ONLY when user explicitly opted in.
+            # Retrain uses only rows in this table (SPEC §9, §10).
+            # Media is never stored.
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS feedback_samples (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    analysis_id TEXT NOT NULL UNIQUE,
+                    text TEXT NOT NULL,
+                    true_label TEXT,
+                    source TEXT NOT NULL DEFAULT 'demo',
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(analysis_id) REFERENCES analyses(id)
+                )
+            """)
             conn.commit()
 
     def record_analysis(self, verdict: Verdict) -> None:
@@ -121,8 +135,20 @@ class SkeptidDatabase:
                 )
             conn.commit()
 
-    def record_feedback(self, analysis_id: str, correct: bool, true_label: str | None = None) -> FeedbackRecord:
-        """Record user feedback, deduped by analysis_id and tagged source=demo."""
+    def record_feedback(
+        self,
+        analysis_id: str,
+        correct: bool,
+        true_label: str | None = None,
+        share_example: bool = False,
+        text: str | None = None,
+    ) -> FeedbackRecord:
+        """Record user feedback, deduped by analysis_id and tagged source=demo.
+
+        If share_example=True and text is provided, the message text is additionally
+        stored in feedback_samples for future retrain use (SPEC §9, §10).
+        Media is never stored.
+        """
         now = datetime.now(UTC).isoformat()
         with self._connection() as conn:
             conn.execute(
@@ -136,6 +162,18 @@ class SkeptidDatabase:
                 """,
                 (analysis_id, 1 if correct else 0, true_label, now),
             )
+            if share_example and text:
+                conn.execute(
+                    """
+                    INSERT INTO feedback_samples (analysis_id, text, true_label, source, created_at)
+                    VALUES (?, ?, ?, 'demo', ?)
+                    ON CONFLICT(analysis_id) DO UPDATE SET
+                        text = excluded.text,
+                        true_label = excluded.true_label,
+                        created_at = excluded.created_at
+                    """,
+                    (analysis_id, text, true_label, now),
+                )
             conn.commit()
         return FeedbackRecord(
             analysis_id=analysis_id,

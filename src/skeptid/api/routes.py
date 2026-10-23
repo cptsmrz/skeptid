@@ -285,23 +285,34 @@ async def submit_feedback(
     db: SkeptidDatabase = Depends(get_db),
 ) -> FeedbackResponse:
     """Receive user feedback regarding a prior analysis verdict."""
-    # Stored feedback data is tagged source=demo and excluded from frozen holdouts (SPEC 9)
+    # Stored feedback data is tagged source=demo and excluded from frozen holdouts (SPEC 9).
+    # Text is stored in feedback_samples only when the user explicitly opted in.
     db.record_feedback(
         analysis_id=payload.analysis_id,
         correct=payload.correct,
         true_label=payload.true_label,
+        share_example=payload.share_example,
+        text=payload.text,
     )
     return FeedbackResponse(status="recorded", analysis_id=payload.analysis_id)
 
 
 @router.get("/api/metrics", tags=["Metrics"])
 def get_metrics(request: Request) -> dict:
-    """Return model evaluation metrics from models/registry.json plus database telemetry."""
+    """Return model evaluation metrics, active routing config, and provider-level DB telemetry.
+
+    Response includes:
+    - models: per-model metrics from registry.json
+    - promotions: promotion history from registry.json
+    - routing: active primary and chain per modality (from live config)
+    - telemetry: DB aggregate stats (total analyses, agreement rate, fallback count)
+    - provider_metrics: per-provider p50/p95 latency from DB
+    """
     registry_path = Path("models/registry.json")
     registry_data: dict = {"models": {}, "promotions": []}
     if registry_path.exists():
         try:
-            with open(registry_path, "r", encoding="utf-8") as f:
+            with open(registry_path, "r", encoding="utf-8-sig") as f:
                 registry_data = json.load(f)
         except Exception as exc:
             raise HTTPException(
@@ -311,9 +322,27 @@ def get_metrics(request: Request) -> dict:
 
     db = get_db(request)
     summary_stats = db.get_summary_stats()
+
+    # Active routing config: primary + chain per modality
+    orchestrator = get_orchestrator(request)
+    cfg = orchestrator.config
+    routing: dict = {}
+    for modality_name in ("text", "email", "image", "video"):
+        try:
+            mod_cfg = cfg.get_modality_config(modality_name)
+            routing[modality_name] = {
+                "primary": mod_cfg.primary,
+                "chain": mod_cfg.chain,
+                "shadow": mod_cfg.shadow,
+            }
+        except ValueError:
+            pass
+
     return {
         **registry_data,
+        "routing": routing,
         "telemetry": summary_stats,
+        "provider_metrics": summary_stats.get("provider_stats", {}),
     }
 
 

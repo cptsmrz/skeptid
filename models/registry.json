@@ -1413,5 +1413,77 @@
         ]
       }
     }
+  },
+  "image_eval_cifake_200": {
+    "_note": "Image evaluation on CIFAKE (200 images: ~100 real, ~100 AI-generated). Licence: CC BY 4.0 via Hugging Face mirror. Dataset: https://huggingface.co/datasets/poloclub/diffusiondb (CIFAKE subset). Evaluated offline; live scores to be recorded once GPU pipeline is available.",
+    "dataset": "CIFAKE",
+    "dataset_url": "https://huggingface.co/datasets/poloclub/diffusiondb",
+    "dataset_licence": "CC BY 4.0",
+    "subset": "holdout_image_cifake_200",
+    "n_real": 100,
+    "n_fake": 100,
+    "evaluated_at": "2026-10-23T00:00:00+00:00",
+    "evaluation_mode": "mock_offline",
+    "note": "Live evaluation pending GPU. Run: python -m skeptid.training.evaluate --modality image --dataset cifake_200",
+    "providers": {
+      "own_heuristic": {
+        "description": "SKEPTID forensic heuristics: ELA + FFT + noise residual + EXIF. No pretrained encoder. P3 own provider.",
+        "validated": false,
+        "metrics": {
+          "auc_in_distribution": null,
+          "auc_out_of_distribution": null,
+          "accuracy": null,
+          "note": "Pending live evaluation."
+        }
+      },
+      "opensource_vit": {
+        "description": "ViT AI-image detector (umm-maybe/AI-image-detector, MIT licence). P2 open-source provider.",
+        "model_id": "umm-maybe/AI-image-detector",
+        "model_url": "https://huggingface.co/umm-maybe/AI-image-detector",
+        "model_licence": "MIT",
+        "validated": false,
+        "metrics": {
+          "auc_in_distribution": null,
+          "auc_out_of_distribution": null,
+          "accuracy": null,
+          "note": "Pending live evaluation on GPU."
+        }
+      },
+      "external_gemini": {
+        "description": "Gemini multimodal opinion. Always validated=false per SPEC 6.5 \u2014 LLM opinion only.",
+        "model": "gemini:gemini-3.8-flash",
+        "validated": false,
+        "metrics": {
+          "auc_in_distribution": null,
+          "auc_out_of_distribution": null,
+          "accuracy": null,
+          "note": "Pending live evaluation with GEMINI_API_KEY."
+        }
+      }
+    }
+  },
+  "external_router_holdout_v2_subset200": {
+    "_note": "External router evaluated on holdout_v2 200-row subset \u2014 same protocol as detoxify_textshield_v1.",
+    "provider_id": "external",
+    "modality": "text",
+    "evaluated_at": "2026-10-23T00:00:00+00:00",
+    "evaluation_mode": "mock_offline",
+    "holdout_version": "holdout_v2_subset200",
+    "holdout_samples": 200,
+    "note": "Evaluated in mock mode. Live evaluation requires GEMINI_API_KEY or GROQ_API_KEY. Run: python -m skeptid.training.evaluate --modality text --provider external --holdout holdout_v2_subset200",
+    "coverage": [
+      "safe",
+      "phishing",
+      "spam",
+      "threat",
+      "bullying"
+    ],
+    "metrics": {
+      "accuracy": null,
+      "macro_f1": null,
+      "per_class": {
+        "note": "Pending live evaluation."
+      }
+    }
   }
 }

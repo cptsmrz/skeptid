@@ -171,7 +171,13 @@ def fuse_results(
         for r in all_results
     ]
 
-    external_used = any(r.provider_id == "external" and r.ok for r in all_results)
+    # SPEC 6.5: external_used is true whenever content was sent to a vendor,
+    # even if the call failed, timed out, or was blocked.
+    # It is false only when nothing left the server (own/opensource only, or budget exceeded).
+    external_used = any(
+        r.provider_id == "external" and r.model_version != "external:budget_exceeded"
+        for r in all_results
+    )
 
     return Verdict(
         id=analysis_id or str(uuid.uuid4()),

@@ -204,3 +204,131 @@ async def test_orchestrator_use_external_flag():
     p_ids_disabled = [p["id"] for p in v2.providers]
     assert "external" not in p_ids_disabled
     assert v2.external_used is False
+
+
+@pytest.mark.asyncio
+async def test_external_used_true_on_vendor_failure():
+    """SPEC 6.5: external_used is true whenever content was sent to a vendor, even if the call failed.
+
+    This ensures the privacy disclosure is shown whenever an attempt was made
+    to send data to an external vendor, regardless of the outcome.
+    """
+    from skeptid.core.fusion import fuse_results
+    from skeptid.core.types import Modality, ProviderResult
+
+    # Simulate an external provider that attempted a call but failed
+    failed_external = ProviderResult(
+        provider_id="external",
+        ok=False,
+        label_scores={},
+        risk=0.0,
+        evidence=[],
+        latency_ms=150,
+        model_version="gemini:gemini-3.8-flash",  # not "mock" or "budget_exceeded" — a real attempt
+        error="Vendor timeout after 8s",
+    )
+    own_result = ProviderResult(
+        provider_id="own",
+        ok=True,
+        label_scores={"safe": 0.1, "phishing": 0.8, "spam": 0.05, "threat": 0.03, "bullying": 0.02},
+        risk=0.90,
+        evidence=[],
+        latency_ms=30,
+        model_version="text_v1",
+        coverage=["safe", "phishing", "spam", "threat", "bullying"],
+    )
+
+    verdict = fuse_results(
+        displayed=own_result,
+        all_results=[own_result, failed_external],
+        modality=Modality.TEXT,
+    )
+
+    assert verdict.external_used is True, (
+        "external_used must be True when content was sent to a vendor, even if the call failed"
+    )
+
+
+@pytest.mark.asyncio
+async def test_external_used_true_on_safety_block():
+    """SPEC 6.5: external_used is true when content is sent and the vendor blocks the request.
+
+    A blocked response means content WAS sent (and received a refusal). The privacy
+    disclosure must still appear.
+    """
+    from skeptid.core.fusion import fuse_results
+    from skeptid.core.types import Modality, ProviderResult
+
+    blocked_external = ProviderResult(
+        provider_id="external",
+        ok=False,
+        label_scores={},
+        risk=0.0,
+        evidence=[],
+        latency_ms=200,
+        model_version="gemini:gemini-3.8-flash",  # real vendor, not mock
+        error="blocked",
+    )
+    own_result = ProviderResult(
+        provider_id="own",
+        ok=True,
+        label_scores={"safe": 0.05, "phishing": 0.9, "spam": 0.02, "threat": 0.02, "bullying": 0.01},
+        risk=0.95,
+        evidence=[],
+        latency_ms=25,
+        model_version="text_v1",
+        coverage=["safe", "phishing", "spam", "threat", "bullying"],
+    )
+
+    verdict = fuse_results(
+        displayed=own_result,
+        all_results=[own_result, blocked_external],
+        modality=Modality.TEXT,
+    )
+
+    assert verdict.external_used is True, (
+        "external_used must be True when content was sent and the vendor issued a safety block"
+    )
+
+
+@pytest.mark.asyncio
+async def test_external_used_false_when_budget_exceeded():
+    """SPEC 6.5: external_used is false when budget exceeded means nothing was sent.
+
+    Budget exhaustion prevents the HTTP call from being made, so the content
+    never left the server.
+    """
+    from skeptid.core.fusion import fuse_results
+    from skeptid.core.types import Modality, ProviderResult
+
+    budget_exceeded_result = ProviderResult(
+        provider_id="external",
+        ok=False,
+        label_scores={},
+        risk=0.0,
+        evidence=[],
+        latency_ms=0,
+        model_version="external:budget_exceeded",
+        error="Daily external call budget exceeded",
+    )
+    own_result = ProviderResult(
+        provider_id="own",
+        ok=True,
+        label_scores={"safe": 0.8, "phishing": 0.1, "spam": 0.05, "threat": 0.03, "bullying": 0.02},
+        risk=0.20,
+        evidence=[],
+        latency_ms=22,
+        model_version="text_v1",
+        coverage=["safe", "phishing", "spam", "threat", "bullying"],
+    )
+
+    verdict = fuse_results(
+        displayed=own_result,
+        all_results=[own_result, budget_exceeded_result],
+        modality=Modality.TEXT,
+    )
+
+    assert verdict.external_used is False, (
+        "external_used must be False when budget_exceeded means nothing left the server"
+    )
+

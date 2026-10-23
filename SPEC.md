@@ -213,7 +213,7 @@ Promotion is a CLI command (`python -m skeptid.training.registry promote --modal
 - **Text:** language-model classification with a fixed JSON schema over `TEXT_LABELS`, temperature 0, output validated against the schema. The analysed content is data, never instructions: wrap it in delimiters, say so in the system prompt, and never let the model's output alone mark content safe (it is one of three signals). Blocked or refused responses return `ok=False, error="blocked"`.
 - **Image and video:** a multimodal model returns structured observations and a risk estimate. It is always `validated=false` and shown in the UI as a language-model opinion. General language models are weak deepfake detectors, so never present this as authoritative.
 - **Cost and quota control:** cache by input SHA-256, enforce a daily call budget, and send at most `top_k_to_external` frames per video.
-- **Disclosure:** when an external vendor is live, the privacy chip must say the content is sent to an external provider. Show "processed in memory, not stored" only for paths where that is true.
+- **Disclosure:** when an external vendor is live, the privacy chip must say the content is sent to an external provider. Show "processed in memory, not stored" only for paths where that is true. `external_used` is true whenever content was sent to an external vendor, even if the call failed, timed out, or was blocked. It is false only when nothing left the server (own and open-source providers only, or a cache hit on content already sent is reported as true for that analysis's original call).
 
 ### 6.6 Audio
 - Register `audio_stub.py` implementing the `Provider` interface and returning `ok=False, error="not_implemented"`. UI shows the Audio tab disabled with "coming soon". No further work unless all milestones are complete.
@@ -249,7 +249,7 @@ Verdict response:
 {
   "id": "uuid", "modality": "email", "label": "phishing",
   "risk": 0.87, "level": "HIGH", "confidence": 0.74,
-  "disagreement": false, "primary_provider": "own", "mock": false,
+  "disagreement": false, "primary_provider": "own", "mock": false, "external_used": false,
   "providers": [{"id":"own","ok":true,"risk":0.87,"model_version":"text_v1","validated":true,"latency_ms":41}, ...],
   "evidence": [{"kind":"span","description":"Urgency + credential request","payload":{"start":12,"end":48,"weight":0.31}}],
   "limits_note": "Risk score with evidence, not proof."
@@ -266,7 +266,7 @@ Verdict response:
 - Uploaded media processed in temp files, deleted in `finally`. Not persisted unless the user opts in via feedback. Store only the hash, label, scores, and (for text) the text the user explicitly submits as feedback.
 - CORS locked to the app's own origin. Security headers set (CSP, X-Content-Type-Options, X-Frame-Options).
 - `/api/providers/status` exposes nothing sensitive. Error messages never include upstream responses.
-- Feedback endpoint: dedupe by hash, rate-limited, labelled `source=demo` and excluded from the frozen holdout.
+- Feedback endpoint: dedupe by hash, rate-limited, labelled `source=demo` and excluded from the frozen holdout. By default only the label, scores, and metadata are stored. The text of a message is stored only when the user ticks an explicit "Share this example to improve the model" option, in a separate `feedback_samples` table with a visible notice. Media is never stored.
 
 ---
 
@@ -285,7 +285,7 @@ Pipeline:
 1. `prepare_text.py` maps every source onto `TEXT_LABELS`, records `source` per row, keeps **matched negatives** (every positive source also contributes its own negatives, so the source of a text cannot predict its label), dedupes, and creates **train / val / frozen holdout** splits (70/15/15, stratified, fixed seed). The holdout is frozen **per data release**: `holdout_v1` is written once for a given set of sources and never regenerated or mixed with feedback data. When a new source is added (for example phishing or threat data), create `holdout_v2` and re-evaluate every candidate on it. Metrics are only comparable within the same holdout version. `registry.json` records the holdout version, file SHA-256, seed, and source list for each evaluation.
 2. `train_text.py` trains the baseline and saves `models/text_vN.joblib`.
 3. `evaluate.py` computes accuracy, macro-F1, per-class precision/recall, confusion matrix, and (image) AUC in-distribution and out-of-distribution, then writes `models/registry.json`.
-4. `retrain.py`: merges base training data with reviewed feedback labels (min 20 new labels, deduped), trains a candidate, evaluates on the frozen holdout, and promotes only if it does not regress. Triggered by CLI or the dashboard button.
+4. `retrain.py`: merges base training data with opt-in shared feedback examples (min 20 new labelled examples, deduped; feedback without a shared example is used only for monitoring), trains a candidate, evaluates on the frozen holdout, and promotes only if it does not regress. Triggered by CLI or the dashboard button.
 5. **External-validity probe:** `tests/fixtures/emails.py` (20 hand-written realistic emails) is never trained on or tuned against. Every candidate model is evaluated on it and the result is reported next to the holdout metrics. A large gap between the two means the model has learned the datasets, not the task.
 
 Colab notebook (`notebooks/image_head_colab.ipynb`): installs deps, mounts Drive, loads the dataset, extracts features with the same `forensics` package (imported from the repo), trains the head, evaluates, and exports `models/image_head_vN.joblib`. Runs on a free T4 GPU.

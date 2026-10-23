@@ -139,10 +139,14 @@ class BaseVendorAdapter(ABC):
 
 
 class GeminiVendorAdapter(BaseVendorAdapter):
-    """Google Gemini API adapter via Generative Language v1beta."""
+    """Google Gemini API adapter via Generative Language v1beta.
 
-    def __init__(self, model_name: str = "gemini-3.8-flash", timeout_s: float = 8.0) -> None:
-        super().__init__(name="gemini", model_name=model_name, timeout_s=timeout_s)
+    Model configurable via GEMINI_MODEL env var (default: gemini-3.8-flash).
+    """
+
+    def __init__(self, model_name: str | None = None, timeout_s: float = 8.0) -> None:
+        resolved = model_name or os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+        super().__init__(name="gemini", model_name=resolved, timeout_s=timeout_s)
 
     def is_configured(self) -> bool:
         return bool(os.getenv("GEMINI_API_KEY"))
@@ -200,10 +204,14 @@ class GeminiVendorAdapter(BaseVendorAdapter):
 
 
 class GroqVendorAdapter(BaseVendorAdapter):
-    """Groq Cloud API adapter (OpenAI-compatible)."""
+    """Groq Cloud API adapter (OpenAI-compatible).
 
-    def __init__(self, model_name: str = "qwen/qwen3.8-27b", timeout_s: float = 8.0) -> None:
-        super().__init__(name="groq", model_name=model_name, timeout_s=timeout_s)
+    Model configurable via GROQ_MODEL env var (default: qwen/qwen3.8-27b).
+    """
+
+    def __init__(self, model_name: str | None = None, timeout_s: float = 8.0) -> None:
+        resolved = model_name or os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
+        super().__init__(name="groq", model_name=resolved, timeout_s=timeout_s)
 
     def is_configured(self) -> bool:
         return bool(os.getenv("GROQ_API_KEY"))
@@ -241,10 +249,14 @@ class GroqVendorAdapter(BaseVendorAdapter):
 
 
 class OpenRouterVendorAdapter(BaseVendorAdapter):
-    """OpenRouter unified API adapter (OpenAI-compatible)."""
+    """OpenRouter unified API adapter (OpenAI-compatible).
 
-    def __init__(self, model_name: str = "meta-llama/llama-3.3-70b-instruct", timeout_s: float = 8.0) -> None:
-        super().__init__(name="openrouter", model_name=model_name, timeout_s=timeout_s)
+    Model configurable via OPENROUTER_MODEL env var (default: meta-llama/llama-3.3-70b-instruct).
+    """
+
+    def __init__(self, model_name: str | None = None, timeout_s: float = 8.0) -> None:
+        resolved = model_name or os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct")
+        super().__init__(name="openrouter", model_name=resolved, timeout_s=timeout_s)
 
     def is_configured(self) -> bool:
         return bool(os.getenv("OPENROUTER_API_KEY"))
@@ -298,10 +310,14 @@ class OpenRouterVendorAdapter(BaseVendorAdapter):
 
 
 class CloudflareVendorAdapter(BaseVendorAdapter):
-    """Cloudflare Workers AI adapter."""
+    """Cloudflare Workers AI adapter.
 
-    def __init__(self, model_name: str = "@cf/meta/llama-3.1-8b-instruct", timeout_s: float = 8.0) -> None:
-        super().__init__(name="cloudflare", model_name=model_name, timeout_s=timeout_s)
+    Model configurable via CF_MODEL env var (default: @cf/meta/llama-3.1-8b-instruct).
+    """
+
+    def __init__(self, model_name: str | None = None, timeout_s: float = 8.0) -> None:
+        resolved = model_name or os.getenv("CF_MODEL", "@cf/meta/llama-3.1-8b-instruct")
+        super().__init__(name="cloudflare", model_name=resolved, timeout_s=timeout_s)
 
     def is_configured(self) -> bool:
         return bool(os.getenv("CF_API_TOKEN") and os.getenv("CF_ACCOUNT_ID"))

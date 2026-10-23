@@ -5,6 +5,7 @@ The overall verdict must NOT be safe.
 """
 
 import email.message
+
 import pytest
 
 from skeptid.core.orchestrator import Orchestrator
