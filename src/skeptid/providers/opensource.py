@@ -4,6 +4,7 @@ Lazy-loads third-party transformer models with clean fallback when optional depe
 are not installed.
 """
 
+import asyncio
 from pathlib import Path
 import time
 from typing import Any
@@ -40,20 +41,11 @@ class OpenSourceTextProvider(Provider):
             self._detoxify = pipeline(
                 "text-classification",
                 model="unitary/toxic-bert",
-                model_kwargs={"local_files_only": True},
+                local_files_only=True,
                 top_k=None,
             )
         except (ImportError, ModuleNotFoundError, RuntimeError, ValueError, OSError, Exception):
-            ckpt = Path.home() / ".cache" / "torch" / "hub" / "checkpoints" / "toxic_original-c1212f89.ckpt"
-            if ckpt.exists() and ckpt.stat().st_size > 400_000_000:
-                try:
-                    from detoxify import Detoxify  # type: ignore[import-untyped]
-
-                    self._detoxify = Detoxify("original")
-                except (ImportError, ModuleNotFoundError, RuntimeError, ValueError, OSError, Exception):
-                    self._detoxify = None
-            else:
-                self._detoxify = None
+            self._detoxify = None
 
         try:
             from transformers import pipeline  # type: ignore[import-untyped]
@@ -61,7 +53,7 @@ class OpenSourceTextProvider(Provider):
             self._text_shield = pipeline(
                 "text-classification",
                 model="telecomsxchange/OpenTextShield",
-                model_kwargs={"local_files_only": True},
+                local_files_only=True,
                 top_k=None,
             )
         except (ImportError, ModuleNotFoundError, RuntimeError, ValueError, OSError, Exception):
@@ -78,7 +70,7 @@ class OpenSourceTextProvider(Provider):
         t0 = time.perf_counter()
         text = payload.text or ""
 
-        if not self._ensure_models():
+        if not await asyncio.to_thread(self._ensure_models):
             # Clean fallback when optional dependencies are absent
             latency_ms = int((time.perf_counter() - t0) * 1000)
             return ProviderResult(
@@ -99,11 +91,13 @@ class OpenSourceTextProvider(Provider):
         # 1. Detoxify predictions (threat, bullying)
         if self._detoxify is not None:
             try:
-                raw = (
-                    self._detoxify.predict(text)
-                    if hasattr(self._detoxify, "predict")
-                    else self._detoxify(text[:512])
-                )
+                def _run_detox():
+                    return (
+                        self._detoxify.predict(text)
+                        if hasattr(self._detoxify, "predict")
+                        else self._detoxify(text[:512])
+                    )
+                raw = await asyncio.to_thread(_run_detox)
                 if isinstance(raw, dict):
                     threat_score = float(raw.get("threat", 0.0))
                     insult_score = float(raw.get("insult", 0.0))
@@ -152,7 +146,7 @@ class OpenSourceTextProvider(Provider):
         # 2. OpenTextShield predictions (spam, phishing, safe)
         if self._text_shield is not None:
             try:
-                shield_res = self._text_shield(text[:512])
+                shield_res = await asyncio.to_thread(self._text_shield, text[:512])
                 # shield_res with top_k=None returns list of dicts or list of list of dicts
                 scores_list = (
                     shield_res[0]

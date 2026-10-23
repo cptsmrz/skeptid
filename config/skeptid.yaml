@@ -23,7 +23,7 @@ video:
   timeout_s: 12
   top_k_to_external: 4
 
-mode: live # mock | live ; live uses real API keys and models
+mode: mock # mock | live ; mock is default for dev and tests
 
 thresholds:
   low_max: 0.35

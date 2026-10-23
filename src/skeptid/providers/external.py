@@ -21,6 +21,7 @@ import httpx
 from skeptid.core.interfaces import Provider
 from skeptid.core.orchestrator import CircuitBreaker
 from skeptid.core.types import (
+    IMAGE_LABELS,
     TEXT_LABELS,
     AnalysisInput,
     Evidence,
@@ -149,7 +150,7 @@ class GeminiVendorAdapter(BaseVendorAdapter):
     """
 
     def __init__(self, model_name: str | None = None, timeout_s: float = 8.0) -> None:
-        resolved = model_name or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        resolved = model_name or os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
         super().__init__(name="gemini", model_name=resolved, timeout_s=timeout_s)
 
     def is_configured(self) -> bool:
@@ -247,10 +248,18 @@ class GroqVendorAdapter(BaseVendorAdapter):
     def _from_vendor_response(self, response_json: dict[str, Any]) -> dict[str, Any]:
         choices = response_json.get("choices", [])
         if not choices:
+            err = response_json.get("error", {})
+            if err:
+                raise ValueError(f"Groq error: {err.get('message', str(err))}")
             raise ValueError("Empty choices from Groq")
         msg = choices[0].get("message", {})
         raw_text = msg.get("content", "{}")
-        return json.loads(raw_text)
+        if "```" in raw_text:
+            parts = raw_text.split("```")
+            raw_text = parts[1]
+            if raw_text.startswith("json"):
+                raw_text = raw_text[4:]
+        return json.loads(raw_text.strip())
 
 
 class OpenRouterVendorAdapter(BaseVendorAdapter):
@@ -316,10 +325,18 @@ class OpenRouterVendorAdapter(BaseVendorAdapter):
     def _from_vendor_response(self, response_json: dict[str, Any]) -> dict[str, Any]:
         choices = response_json.get("choices", [])
         if not choices:
+            err = response_json.get("error", {})
+            if err:
+                raise ValueError(f"OpenRouter error: {err.get('message', str(err))}")
             raise ValueError("Empty choices from OpenRouter")
         msg = choices[0].get("message", {})
         raw_text = msg.get("content", "{}")
-        return json.loads(raw_text)
+        if "```" in raw_text:
+            parts = raw_text.split("```")
+            raw_text = parts[1]
+            if raw_text.startswith("json"):
+                raw_text = raw_text[4:]
+        return json.loads(raw_text.strip())
 
 
 class CloudflareVendorAdapter(BaseVendorAdapter):
@@ -398,11 +415,18 @@ class ExternalProvider(Provider):
 
         if adapters is not None:
             self.adapters = adapters
+        elif modality in (Modality.IMAGE, Modality.VIDEO):
+            self.adapters = [
+                GeminiVendorAdapter(),
+                OpenRouterVendorAdapter(),
+                CloudflareVendorAdapter(),
+                GroqVendorAdapter(),
+            ]
         else:
             self.adapters = [
                 GroqVendorAdapter(),
-                OpenRouterVendorAdapter(),
                 GeminiVendorAdapter(),
+                OpenRouterVendorAdapter(),
                 CloudflareVendorAdapter(),
             ]
 
@@ -441,13 +465,20 @@ class ExternalProvider(Provider):
         text = payload.text or ""
 
         # 1. Deterministic Mock Mode
+        is_media = self.modality in (Modality.IMAGE, Modality.VIDEO)
+        target_labels = IMAGE_LABELS if is_media else TEXT_LABELS
+
         if self.is_mock or not any(a.is_configured() for a in self.adapters):
             digest = hashlib.sha256(f"{self.id}:{self.modality.value}:{text}".encode()).hexdigest()
             seed_int = int(digest[:8], 16)
             risk = round((seed_int % 10000) / 10000.0, 4)
-            label = "safe" if risk < 0.35 else "phishing" if risk > 0.70 else "spam"
-            scores = {lbl: 0.05 for lbl in TEXT_LABELS}
-            scores[label] = round(risk if label != "safe" else 1.0 - risk, 4)
+            if is_media:
+                label = "authentic" if risk < 0.35 else "ai_generated" if risk > 0.70 else "filtered"
+            else:
+                label = "safe" if risk < 0.35 else "phishing" if risk > 0.70 else "spam"
+            scores = {lbl: 0.05 for lbl in target_labels}
+            safe_lbl = "authentic" if is_media else "safe"
+            scores[label] = round(risk if label != safe_lbl else 1.0 - risk, 4)
             # Rebalance
             total = sum(scores.values())
             calibrated = {lbl: round(v / total, 4) for lbl, v in scores.items()}
@@ -467,7 +498,7 @@ class ExternalProvider(Provider):
                 ],
                 latency_ms=latency_ms,
                 model_version="mock",
-                coverage=list(TEXT_LABELS),
+                coverage=list(target_labels),
                 validated=False,
             )
 
@@ -508,6 +539,9 @@ class ExternalProvider(Provider):
                 if not adapter.is_configured():
                     continue
 
+                if payload.raw_bytes is not None and adapter.name == "groq":
+                    continue
+
                 if not self._check_vendor_budget(adapter.name):
                     errors.append(
                         f"{adapter.name}: per-vendor daily budget exceeded ({self.per_vendor_daily_budget})"
@@ -546,13 +580,44 @@ class ExternalProvider(Provider):
                     label = parsed.get("label", "safe").lower()
                     if label not in TEXT_LABELS:
                         label = "safe"
-                    risk = float(parsed.get("risk", 0.0))
+                    risk_raw = parsed.get("risk", 0.0)
+                    if isinstance(risk_raw, str):
+                        try:
+                            risk = float(risk_raw)
+                        except ValueError:
+                            risk_map = {
+                                "none": 0.05,
+                                "safe": 0.05,
+                                "low": 0.20,
+                                "medium": 0.50,
+                                "high": 0.85,
+                                "critical": 0.95,
+                            }
+                            risk = risk_map.get(risk_raw.lower().strip(), 0.5)
+                    else:
+                        risk = float(risk_raw)
+                    if is_media:
+                        if label in ("safe", "authentic", "clean", "human"):
+                            label = "authentic"
+                        elif label in ("ai_generated", "generated", "fake", "synthetic", "phishing", "threat"):
+                            label = "ai_generated"
+                        elif label in ("ai_edited", "edited", "modified", "tampered"):
+                            label = "ai_edited"
+                        elif label in ("filtered", "filter", "spam"):
+                            label = "filtered"
+                        if label not in IMAGE_LABELS:
+                            label = "authentic" if risk < 0.35 else "ai_generated"
+                    else:
+                        if label not in TEXT_LABELS:
+                            label = "safe"
+
                     confidence = float(parsed.get("confidence", 0.5))
                     reason = str(parsed.get("reason", "LLM external classification"))
 
-                    # Construct calibrated scores over TEXT_LABELS
-                    scores = {lbl: 0.02 for lbl in TEXT_LABELS}
-                    scores[label] = max(0.5, risk if label != "safe" else 1.0 - risk)
+                    # Construct calibrated scores over target_labels
+                    scores = {lbl: 0.02 for lbl in target_labels}
+                    safe_label = "authentic" if is_media else "safe"
+                    scores[label] = max(0.5, risk if label != safe_label else 1.0 - risk)
                     s_sum = sum(scores.values())
                     calibrated = {lbl: round(val / s_sum, 4) for lbl, val in scores.items()}
 
@@ -577,7 +642,7 @@ class ExternalProvider(Provider):
                         evidence=evidence,
                         latency_ms=int((time.perf_counter() - t0) * 1000),
                         model_version=f"{adapter.name}:{adapter.model_name}",
-                        coverage=list(TEXT_LABELS),
+                        coverage=list(target_labels),
                         validated=False,
                     )
                     self._cache[cache_key] = res

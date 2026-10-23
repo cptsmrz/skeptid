@@ -4,6 +4,7 @@ Uses 'dima806/ai_vs_human_generated_image_detection' (Apache-2.0 licence).
 Features lazy loading, clean fallback, and calibration over standard IMAGE_LABELS.
 """
 
+import asyncio
 import io
 import logging
 import time
@@ -46,12 +47,14 @@ class OpenSourceImageProvider(Provider):
 
         self._initialized = True
         try:
-            from transformers import pipeline  # type: ignore[import-untyped]
+            from transformers import AutoImageProcessor, AutoModelForImageClassification, pipeline  # type: ignore[import-untyped]
 
+            proc = AutoImageProcessor.from_pretrained(self.model_name, local_files_only=True)
+            model = AutoModelForImageClassification.from_pretrained(self.model_name, local_files_only=True)
             self._classifier = pipeline(
                 "image-classification",
-                model=self.model_name,
-                model_kwargs={"local_files_only": True},
+                model=model,
+                image_processor=proc,
                 top_k=None,
             )
             logger.info("Successfully loaded open-source image model: %s", self.model_name)
@@ -97,7 +100,8 @@ class OpenSourceImageProvider(Provider):
             )
 
         # 2. Check model availability with clean fallback
-        if not self._ensure_model():
+        model_ready = await asyncio.to_thread(self._ensure_model)
+        if not model_ready:
             latency_ms = int((time.perf_counter() - t0) * 1000)
             return ProviderResult(
                 provider_id=self.id,
@@ -114,7 +118,7 @@ class OpenSourceImageProvider(Provider):
 
         # 3. Model Inference
         try:
-            raw_output = self._classifier(image)
+            raw_output = await asyncio.to_thread(self._classifier, image)
             # raw_output is list of dicts: [{'label': 'AI-generated', 'score': 0.98}, {'label': 'human', 'score': 0.02}]
             scores_by_label: dict[str, float] = {}
             for item in raw_output:
