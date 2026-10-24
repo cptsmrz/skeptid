@@ -55,11 +55,11 @@ body.theme-day,
 body.theme-frozen-glass {
   --bg-primary: #f8fafc;
   --bg-canvas: #f1f5f9;
-  --glass-surface: rgba(255, 255, 255, 0.46); /* 30% more transparent */
-  --glass-elevated: rgba(255, 255, 255, 0.62);
-  --glass-border: rgba(15, 23, 42, 0.08);
+  --glass-surface: rgba(255, 255, 255, 0.72);
+  --glass-elevated: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(15, 23, 42, 0.12);
   --glass-border-focus: rgba(2, 132, 199, 0.6);
-  --glass-blur: blur(20px);
+  --glass-blur: blur(24px);
   --glass-shadow: 0 20px 45px rgba(0, 10, 30, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.95);
   --text-main: #0f172a;
   --text-muted: #334155;
@@ -161,9 +161,9 @@ body.is-mobile-os .bg-video-container {
 }
 
 body.theme-day .bg-scrim {
-  background: rgba(245, 248, 252, 0.58);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* Background Ambient Visual Layer */
@@ -177,7 +177,7 @@ body.theme-day .bg-scrim {
 }
 
 body.theme-day .ambient-vignette {
-  background: radial-gradient(circle at 50% 50%, transparent 60%, rgba(15, 23, 42, 0.08) 100%);
+  background: transparent;
 }
 
 body.ambiance-threat .ambient-vignette {
