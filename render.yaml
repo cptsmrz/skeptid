@@ -3,10 +3,8 @@ services:
     name: skeptid
     runtime: python
     buildCommand: pip install -r requirements.lock
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    startCommand: python main.py
     envVars:
-      - key: PORT
-        value: 8000
       - key: SKEPTID_MODE
         value: live
       - key: PYTHONPATH
