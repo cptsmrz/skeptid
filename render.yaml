@@ -7,3 +7,5 @@ services:
     envVars:
       - key: PORT
         value: 8000
+      - key: SKEPTID_MODE
+        value: live
