@@ -55,18 +55,18 @@ body.theme-day,
 body.theme-frozen-glass {
   --bg-primary: #f8fafc;
   --bg-canvas: #f1f5f9;
-  --glass-surface: rgba(255, 255, 255, 0.76);
-  --glass-elevated: rgba(255, 255, 255, 0.92);
-  --glass-border: rgba(15, 23, 42, 0.12);
+  --glass-surface: rgba(255, 255, 255, 0.46); /* 30% more transparent */
+  --glass-elevated: rgba(255, 255, 255, 0.62);
+  --glass-border: rgba(15, 23, 42, 0.08);
   --glass-border-focus: rgba(2, 132, 199, 0.6);
-  --glass-blur: blur(24px);
+  --glass-blur: blur(20px);
   --glass-shadow: 0 20px 45px rgba(0, 10, 30, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.95);
   --text-main: #0f172a;
-  --text-muted: #475569;
-  --text-dim: #94a3b8;
+  --text-muted: #334155;
+  --text-dim: #64748b;
   --accent: #0284c7;
   --accent-glow: rgba(2, 132, 199, 0.22);
-  --shortcut-bg: rgba(255, 255, 255, 0.65);
+  --shortcut-bg: rgba(255, 255, 255, 0.45);
   --shortcut-hover: rgba(2, 132, 199, 0.12);
   --dropzone-glow: 0 0 30px rgba(2, 132, 199, 0.2);
 }
@@ -136,9 +136,9 @@ body.is-mobile-os .bg-video-container {
 }
 
 body.theme-day .bg-scrim {
-  background: rgba(245, 248, 252, 0.84);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(245, 248, 252, 0.58);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 /* Background Ambient Visual Layer */
@@ -191,18 +191,20 @@ body.ambiance-legit .ambient-vignette {
 }
 
 .hub-title-group h1 {
-  font-size: 1.15rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+  color: var(--text-main);
 }
 
 .hub-subtitle {
   font-size: 0.72rem;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   color: var(--text-muted);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  font-weight: 500;
 }
 
 .hub-actions {
@@ -211,31 +213,88 @@ body.ambiance-legit .ambient-vignette {
   gap: 1rem;
 }
 
-/* Tactical Day/Night Ops Badge Button */
-.ops-toggle-btn {
-  background: var(--glass-surface);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-pill);
-  padding: 0.45rem 1.05rem;
-  color: var(--text-main);
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
+/* Brushed Steel iOS Switch for Dark / Light Mode */
+.ios-steel-switch {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  box-shadow: var(--glass-shadow);
-  letter-spacing: 0.04em;
-  transition: all 0.25s ease;
+  width: 116px;
+  height: 34px;
+  background: linear-gradient(180deg, #1f2530 0%, #11141c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+  padding: 3px;
+  cursor: pointer;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(255, 255, 255, 0.1);
+  user-select: none;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
 
-.ops-toggle-btn:hover {
-  border-color: var(--accent);
-  box-shadow: var(--glass-shadow), 0 0 14px var(--accent-glow);
-  transform: translateY(-1px);
+body.theme-day .ios-steel-switch {
+  background: linear-gradient(180deg, #d8e2ec 0%, #a4b3c4 100%);
+  border-color: rgba(15, 23, 42, 0.18);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.ios-steel-switch .switch-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.ios-steel-switch .switch-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  transition: color 0.25s ease;
+  z-index: 3;
+}
+
+body.theme-night .ios-steel-switch .switch-option.opt-dark {
+  color: #00f0ff;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+  font-weight: 700;
+}
+
+body.theme-day .ios-steel-switch .switch-option.opt-light {
+  color: #0369a1;
+  font-weight: 700;
+}
+
+/* Brushed Steel Thumb / Sliding Cursor */
+.ios-steel-switch .switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 53px;
+  height: 26px;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #3a4556 0%, #202836 50%, #151b24 100%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease;
+  z-index: 1;
+}
+
+body.theme-day .ios-steel-switch .switch-thumb {
+  transform: translateX(55px);
+  background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 50%, #cbd5e1 100%);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 1px #ffffff;
+}
+
+.ios-steel-switch:hover .switch-thumb {
+  filter: brightness(1.1);
 }
 
 .header-toggle-label {

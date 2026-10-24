@@ -15,43 +15,29 @@
     }
   }
 
-  // --- DAY & NIGHT OPS THEME CONTROLLER ---
-  const THEME_KEY = 'skeptid_ops_theme';
-  const DEFAULT_THEME = 'theme-night'; // 'theme-night' or 'theme-day'
-
+  // --- THEME CONTROLLER (Always Dark by default every time) ---
   function initTheme() {
     detectMobileOS();
-    const saved = localStorage.getItem(THEME_KEY) || DEFAULT_THEME;
-    applyTheme(saved);
+    // Default to dark mode every time as requested
+    applyTheme('theme-night');
 
-    const opsBtn = document.getElementById('ops-theme-toggle');
-    if (opsBtn) {
-      opsBtn.addEventListener('click', () => {
-        const current = document.body.classList.contains('theme-day') ? 'theme-night' : 'theme-day';
-        applyTheme(current);
+    const toggleBtn = document.getElementById('ops-theme-toggle');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        const isDay = document.body.classList.contains('theme-day');
+        applyTheme(isDay ? 'theme-night' : 'theme-day');
       });
-    }
-
-    // Legacy fallback buttons if present
-    const btnGlass = document.getElementById('theme-btn-glass');
-    const btnFrozen = document.getElementById('theme-btn-frozen');
-    if (btnGlass && btnFrozen) {
-      btnGlass.addEventListener('click', () => applyTheme('theme-night'));
-      btnFrozen.addEventListener('click', () => applyTheme('theme-day'));
     }
   }
 
   function applyTheme(theme) {
-    const isDay = theme === 'theme-day' || theme === 'theme-frozen-glass';
+    const isDay = theme === 'theme-day';
     document.body.classList.remove('theme-night', 'theme-day', 'theme-glassmorphism', 'theme-frozen-glass');
     document.body.classList.add(isDay ? 'theme-day' : 'theme-night');
-    localStorage.setItem(THEME_KEY, isDay ? 'theme-day' : 'theme-night');
 
-    const opsIcon = document.getElementById('ops-theme-icon');
-    const opsText = document.getElementById('ops-theme-text');
-    if (opsIcon && opsText) {
-      opsIcon.textContent = isDay ? '☀️' : '🌙';
-      opsText.textContent = isDay ? 'DAY OPS' : 'NIGHT OPS';
+    const toggleBtn = document.getElementById('ops-theme-toggle');
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-checked', isDay ? 'true' : 'false');
     }
   }
 
@@ -67,10 +53,9 @@
     }
   }
 
-  // --- MODALITY HELPERS ---
+  // --- AUTOMATIC EXTERNAL AI (Zero friction, no user toggle needed) ---
   function getIncludeExternal() {
-    const el = document.getElementById('hub-external-toggle');
-    return el ? el.checked : true;
+    return true;
   }
 
   // --- UNIVERSAL CLIENT RUNNER ---
@@ -262,25 +247,27 @@
         .map(
           (ev) => `
         <div class="evidence-card">
-          <div class="evidence-title">${ev.kind ? ev.kind.toUpperCase() : 'SIGNAL'}: ${ev.description || 'Forensic indicator'}</div>
+          <div class="evidence-title">${ev.kind ? ev.kind.toUpperCase() : 'SIGNAL'}: ${ev.description || 'Detected clue'}</div>
           ${ev.details ? `<div class="evidence-desc"><code>${JSON.stringify(ev.details)}</code></div>` : ''}
         </div>
       `
         )
         .join('');
 
+      const verdictText = level === 'HIGH' ? `🚨 High Risk · ${label}` : level === 'MEDIUM' ? `⚠️ Moderate Risk · ${label}` : `✅ Safe · ${label}`;
+
       resultPanel.innerHTML = `
         <div class="result-verdict-header">
           <div>
-            <span class="verdict-badge ${badgeClass}">${level} RISK // ${label}</span>
+            <span class="verdict-badge ${badgeClass}">${verdictText}</span>
           </div>
           <div class="risk-metrics-row">
             <div class="metric-item">
-              <span class="metric-label">Risk Score</span>
+              <span class="metric-label">Risk</span>
               <span class="metric-val">${riskPct}%</span>
             </div>
             <div class="metric-item">
-              <span class="metric-label">Confidence</span>
+              <span class="metric-label">Certainty</span>
               <span class="metric-val">${confPct}%</span>
             </div>
           </div>
@@ -289,11 +276,11 @@
         ${mediaPreviewHtml}
 
         <div style="margin-top: 1.25rem;">
-          <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; text-transform: uppercase; font-family: var(--font-mono); color: var(--text-muted);">
-            Forensic Evidence Trail
+          <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.5rem; text-transform: uppercase; font-family: var(--font-sans); color: var(--text-muted); letter-spacing: 0.05em;">
+            What We Found
           </h3>
           <div class="evidence-list">
-            ${evidenceItems || '<div class="evidence-card"><div class="evidence-desc">No high-risk anomalies detected. Signature matches benign baseline.</div></div>'}
+            ${evidenceItems || '<div class="evidence-card"><div class="evidence-desc">No suspicious signs found. Content looks safe to trust.</div></div>'}
           </div>
         </div>
       `;

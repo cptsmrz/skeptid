@@ -550,15 +550,15 @@
       var src = media.objectUrl || URL.createObjectURL(file);
       var mapRaw = heat ? String(heat.payload.png_b64) : "";
       var mapSrc = mapRaw.length < 4000000 && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(mapRaw) ? mapRaw : mapRaw.length < 4000000 && /^[A-Za-z0-9+/=]+$/.test(mapRaw) ? "data:image/png;base64," + mapRaw : "";
-      html += "<div class=\"section media-visual\"><h3>Forensic anomaly map</h3><div class=\"anomaly-wrap\"><img class=\"media-preview\" src=\"" + src + "\" alt=\"Uploaded image\">" + (mapSrc ? "<img class=\"anomaly-layer\" src=\"" + mapSrc + "\" alt=\"Forensic anomaly overlay\" style=\"opacity:.55\">" : "") + "</div>";
+      html += "<div class=\"section media-visual\"><h3>Visual change map</h3><div class=\"anomaly-wrap\"><img class=\"media-preview\" src=\"" + src + "\" alt=\"Uploaded image\">" + (mapSrc ? "<img class=\"anomaly-layer\" src=\"" + mapSrc + "\" alt=\"Visual change overlay\" style=\"opacity:.55\">" : "") + "</div>";
       if (mapSrc) html += "<label class=\"opacity-control\">Map opacity <input type=\"range\" min=\"0\" max=\"1\" step=\"0.05\" value=\"0.55\"></label>";
-      else html += "<p class=\"muted\">No forensic anomaly map was returned for this file.</p>";
+      else html += "<p class=\"muted\">No visual change map was needed for this file.</p>";
       html += "<p class=\"media-caption\">" + escapeHtml(file.name) + " · " + file.size + " bytes</p></div>";
     } else if (kind === "audio") {
       var audioUrl = media.objectUrl || URL.createObjectURL(file);
       var specEv = evidence.find(function (ev) { return ev.kind === "spectrum"; });
       var bands = specEv && specEv.payload && specEv.payload.band_energies || [];
-      html += "<div class=\"section media-visual audio-visual\"><h3>Voice & acoustic forensics</h3>";
+      html += "<div class=\"section media-visual audio-visual\"><h3>Voice sound analysis</h3>";
       html += "<audio class=\"audio-player-control\" controls src=\"" + audioUrl + "\"></audio>";
       if (bands.length) {
         html += "<p class=\"muted\" style=\"margin-top:8px\">16-band Mel power distribution</p><div class=\"spectrogram-bars\" role=\"img\" aria-label=\"Audio frequency distribution\">";
