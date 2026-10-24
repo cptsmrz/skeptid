@@ -2,7 +2,7 @@ services:
   - type: web
     name: skeptid
     runtime: python
-    buildCommand: pip install --upgrade pip && pip install .
+    buildCommand: pip install -r requirements.lock
     startCommand: uvicorn skeptid.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PORT
