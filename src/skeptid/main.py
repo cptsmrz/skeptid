@@ -35,10 +35,11 @@ def create_app(config: SkeptidConfig | None = None) -> FastAPI:
     # Attach defensive security headers middleware
     app.add_middleware(SecurityHeadersMiddleware)
 
-    # Restrict CORS to self / localhost origins
+    # Restrict CORS to self, localhost, and onrender deployment domains
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],
+        allow_origin_regex=r"https://.*\.onrender\.com",
         allow_credentials=True,
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["*"],
