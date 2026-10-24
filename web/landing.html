@@ -45,8 +45,12 @@
             </button>
 
             <nav class="menu-dropdown liquid-glass-strong" id="menu-dropdown" aria-label="Quick links" hidden>
-              <a href="/" class="menu-link scale-interactive">Open the desk</a>
-              <a href="/#records" class="menu-link scale-interactive">Records</a>
+              <a href="index.html" class="menu-link scale-interactive">Unified Desk</a>
+              <a href="message.html" class="menu-link scale-interactive">Email & Text Forensics</a>
+              <a href="image.html" class="menu-link scale-interactive">Image Forensics</a>
+              <a href="video.html" class="menu-link scale-interactive">Video Forensics</a>
+              <a href="audio.html" class="menu-link scale-interactive">Audio Forensics</a>
+              <a href="binary.html" class="menu-link scale-interactive">Binary & File Forensics</a>
               <a href="https://github.com/cptsmrz/skeptid/blob/main/LIMITS.md" class="menu-link scale-interactive" target="_blank" rel="noopener noreferrer">Limits</a>
               <a href="https://github.com/cptsmrz/skeptid" class="menu-link scale-interactive" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
               <a href="https://github.com/cptsmrz/skeptid/blob/main/SPEC.md" class="menu-link scale-interactive" target="_blank" rel="noopener noreferrer">Spec</a>
@@ -60,7 +64,7 @@
           <p class="hero-subline">Check a message, an image or a video before you trust it. SKEPTID runs three independent checks and shows the evidence behind every risk score.</p>
           
           <div class="hero-cta-row">
-            <a href="/" class="cta-button liquid-glass-strong scale-interactive">
+            <a href="index.html" class="cta-button liquid-glass-strong scale-interactive">
               <span>Open the desk</span>
               <span class="cta-icon-circle" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -72,9 +76,11 @@
           </div>
 
           <div class="hero-pills">
-            <span class="glass-pill liquid-glass">Email and text</span>
-            <span class="glass-pill liquid-glass">Images</span>
-            <span class="glass-pill liquid-glass">Video</span>
+            <a href="message.html" class="glass-pill liquid-glass scale-interactive">Email and text</a>
+            <a href="image.html" class="glass-pill liquid-glass scale-interactive">Images</a>
+            <a href="video.html" class="glass-pill liquid-glass scale-interactive">Video</a>
+            <a href="audio.html" class="glass-pill liquid-glass scale-interactive">Audio</a>
+            <a href="binary.html" class="glass-pill liquid-glass scale-interactive">Binary & Files</a>
           </div>
 
           <div class="glass-chip liquid-glass">Risk score with evidence, not proof.</div>
@@ -117,7 +123,7 @@
                 <h2 class="card-title">Forensic anomaly map</h2>
                 <p class="card-text">See which regions of an image look edited or generated, and how strongly. A signal to inspect, not proof.</p>
               </div>
-              <a href="/" class="plus-btn scale-interactive" aria-label="Open desk to inspect forensic anomaly map">
+              <a href="image.html" class="plus-btn scale-interactive" aria-label="Open image desk to inspect forensic anomaly map">
                 <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="12" y1="5" x2="12" y2="19"/>
                   <line x1="5" y1="12" x2="19" y2="12"/>
@@ -175,7 +181,7 @@
           </span>
         </div>
 
-        <a href="/" class="top-desk-btn liquid-glass scale-interactive">
+        <a href="index.html" class="top-desk-btn liquid-glass scale-interactive">
           <span>Open the desk</span>
           <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="5" y1="12" x2="19" y2="12"/>
@@ -223,7 +229,7 @@
             <h2 class="card-title">Forensic anomaly map</h2>
             <p class="card-text">See which regions of an image look edited or generated, and how strongly. A signal to inspect, not proof.</p>
           </div>
-          <a href="/" class="plus-btn scale-interactive" aria-label="Open desk to inspect forensic anomaly map">
+          <a href="image.html" class="plus-btn scale-interactive" aria-label="Open image desk to inspect forensic anomaly map">
             <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="12" y1="5" x2="12" y2="19"/>
               <line x1="5" y1="12" x2="19" y2="12"/>
@@ -238,6 +244,14 @@
   <!-- Interactive & Motion Script -->
   <script>
     (function () {
+      // 0. Strict Mobile OS Detection (Android & iOS only - not window resizing)
+      var ua = navigator.userAgent || navigator.vendor || window.opera || '';
+      var isMobileOS = /android|iphone|ipad|ipod/i.test(ua) ||
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (isMobileOS) {
+        document.body.classList.add('is-mobile-os');
+      }
+
       // 1. Reduced Motion and Data Saver Video Pause
       var video = document.getElementById('hero-video');
       if (video) {
