@@ -98,14 +98,41 @@ html, body {
   pointer-events: none;
 }
 
+.bg-video-container video,
 #hero-video {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.theme-night .bg-video-dark,
+body:not(.theme-day) .bg-video-dark {
+  opacity: 1;
+  visibility: visible;
+}
+
+body.theme-night .bg-video-light,
+body:not(.theme-day) .bg-video-light {
+  opacity: 0;
+  visibility: hidden;
+}
+
+body.theme-day .bg-video-dark {
+  opacity: 0;
+  visibility: hidden;
+}
+
+body.theme-day .bg-video-light {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Strictly Android & iOS Mobile Device View (NOT window resizing on desktop) */
+body.is-mobile-os .bg-video-container video,
 body.is-mobile-os #hero-video {
   display: none !important;
 }

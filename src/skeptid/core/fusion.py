@@ -190,6 +190,16 @@ def fuse_results(
         )
     )
 
+    merged_evidence = list(displayed.evidence)
+    seen_evidence = {(e.kind, e.description) for e in merged_evidence}
+    for r in all_results:
+        if r.ok:
+            for ev in r.evidence:
+                key = (ev.kind, ev.description)
+                if key not in seen_evidence:
+                    seen_evidence.add(key)
+                    merged_evidence.append(ev)
+
     return Verdict(
         id=analysis_id or str(uuid.uuid4()),
         modality=modality,
@@ -201,7 +211,7 @@ def fuse_results(
         primary_provider=displayed.provider_id,
         mock=is_mock,
         providers=provider_summaries,
-        evidence=list(displayed.evidence),
+        evidence=merged_evidence,
         limits_note="Risk score with evidence, not proof.",
         validated=is_validated,
         external_used=external_used,

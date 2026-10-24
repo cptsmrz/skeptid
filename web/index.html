@@ -10,8 +10,11 @@
 <body class="theme-glassmorphism">
   <!-- Looping Background Video -->
   <div class="bg-video-container" aria-hidden="true">
-    <video autoplay muted loop playsinline preload="auto" poster="assets/hero-poster.jpg" aria-hidden="true">
+    <video class="bg-video-dark" autoplay muted loop playsinline preload="auto" poster="assets/hero-poster.jpg" aria-hidden="true">
       <source src="assets/hero.mp4" type="video/mp4">
+    </video>
+    <video class="bg-video-light" autoplay muted loop playsinline preload="auto" poster="assets/hero-light-poster.jpg" aria-hidden="true">
+      <source src="assets/hero-light.mp4" type="video/mp4">
     </video>
   </div>
   <div class="bg-scrim" aria-hidden="true"></div>
@@ -19,7 +22,7 @@
 
   <!-- Hub Header -->
   <header class="hub-header">
-    <a href="index.html" class="hub-brand">
+    <a href="landing.html" class="hub-brand" aria-label="Go to SKEPTID Home">
       <div class="hub-title-group">
         <h1>SKEPTID</h1>
         <div class="hub-subtitle">Check Anything</div>
@@ -27,6 +30,15 @@
     </a>
 
     <div class="hub-actions">
+      <!-- Accurate Top Bar Home Navigation -->
+      <a href="landing.html" class="hub-nav-link" aria-label="Home page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>Home</span>
+      </a>
+
       <!-- Brushed Steel iOS Dark / Light Toggle Switch -->
       <button type="button" class="ios-steel-switch" id="ops-theme-toggle" role="switch" aria-label="Switch between Dark and Light mode">
         <span class="switch-thumb" aria-hidden="true"></span>
@@ -98,31 +110,13 @@
         <span class="ntp-tile-label">Video</span>
       </a>
 
-      <a href="message.html" class="ntp-tile">
+      <a href="files.html" class="ntp-tile">
         <div class="ntp-tile-icon-box">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
           </svg>
         </div>
-        <span class="ntp-tile-label">Message</span>
-      </a>
-
-      <a href="binary.html" class="ntp-tile">
-        <div class="ntp-tile-icon-box">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/>
-          </svg>
-        </div>
-        <span class="ntp-tile-label">File</span>
-      </a>
-
-      <a href="landing.html" class="ntp-tile">
-        <div class="ntp-tile-icon-box">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-          </svg>
-        </div>
-        <span class="ntp-tile-label">Home</span>
+        <span class="ntp-tile-label">Files & Messages</span>
       </a>
     </nav>
 

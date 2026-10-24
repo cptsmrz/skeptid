@@ -10,8 +10,11 @@
 <body>
   <!-- Looping Background Video -->
   <div class="bg-video-container" aria-hidden="true">
-    <video id="hero-video" autoplay muted loop playsinline preload="metadata" poster="assets/hero-poster.jpg" aria-hidden="true">
+    <video class="bg-video-dark" id="hero-video" autoplay muted loop playsinline preload="auto" poster="assets/hero-poster.jpg" aria-hidden="true">
       <source src="assets/hero.mp4" type="video/mp4">
+    </video>
+    <video class="bg-video-light" autoplay muted loop playsinline preload="auto" poster="assets/hero-light-poster.jpg" aria-hidden="true">
+      <source src="assets/hero-light.mp4" type="video/mp4">
     </video>
   </div>
 
@@ -48,8 +51,7 @@
               <a href="image.html" class="menu-link scale-interactive">Photo Check</a>
               <a href="video.html" class="menu-link scale-interactive">Video Check</a>
               <a href="audio.html" class="menu-link scale-interactive">Voice Check</a>
-              <a href="message.html" class="menu-link scale-interactive">Message & Email Check</a>
-              <a href="binary.html" class="menu-link scale-interactive">File Check</a>
+              <a href="files.html" class="menu-link scale-interactive">Files & Messages Check</a>
             </nav>
           </div>
         </header>
@@ -72,11 +74,10 @@
           </div>
 
           <div class="hero-pills">
-            <a href="message.html" class="glass-pill liquid-glass scale-interactive">Message & Email</a>
             <a href="image.html" class="glass-pill liquid-glass scale-interactive">Photos</a>
             <a href="video.html" class="glass-pill liquid-glass scale-interactive">Video</a>
             <a href="audio.html" class="glass-pill liquid-glass scale-interactive">Voice</a>
-            <a href="binary.html" class="glass-pill liquid-glass scale-interactive">Files</a>
+            <a href="files.html" class="glass-pill liquid-glass scale-interactive">Files & Messages</a>
           </div>
 
           <div class="glass-chip liquid-glass">Risk score with evidence, not proof.</div>

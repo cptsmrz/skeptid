@@ -103,10 +103,35 @@ body.theme-day {
 }
 
 .bg-video-container video {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.theme-night .bg-video-dark,
+body:not(.theme-day) .bg-video-dark {
+  opacity: 1;
+  visibility: visible;
+}
+
+body.theme-night .bg-video-light,
+body:not(.theme-day) .bg-video-light {
+  opacity: 0;
+  visibility: hidden;
+}
+
+body.theme-day .bg-video-dark {
+  opacity: 0;
+  visibility: hidden;
+}
+
+body.theme-day .bg-video-light {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Strictly Android & iOS Mobile Device View (NOT window resizing on desktop) */
@@ -817,4 +842,122 @@ body.theme-day .ntp-textarea {
     width: 44px;
     height: 44px;
   }
+}
+
+/* Accurate Top Header Navigation Link */
+.hub-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  background: var(--shortcut-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 9999px;
+  backdrop-filter: var(--glass-blur);
+  transition: all var(--trans-speed) ease;
+}
+.hub-nav-link:hover {
+  color: var(--text-main);
+  border-color: var(--accent);
+  background: var(--shortcut-hover);
+  transform: translateY(-1px);
+}
+
+/* Concise 2-3 line Gemini explanation */
+.gemini-summary-box {
+  margin: 1.25rem 0 1rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  backdrop-filter: var(--glass-blur);
+}
+body.theme-day .gemini-summary-box {
+  background: rgba(255, 255, 255, 0.65);
+  border-color: rgba(15, 23, 42, 0.1);
+  border-left-color: var(--accent);
+}
+.gemini-summary-text {
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: var(--text-main);
+  font-weight: 450;
+}
+
+/* Interactive Heatmap Styling */
+.heatmap-container {
+  position: relative;
+  display: inline-block;
+  margin: 0 auto;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--glass-border);
+}
+.heatmap-base-img {
+  display: block;
+  max-height: 280px;
+  width: auto;
+  max-width: 100%;
+}
+.heatmap-overlay-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+.heatmap-controls {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.heatmap-controls input[type="range"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* "More" Collapsible Inner Mechanism Button */
+.inner-mechanisms-section {
+  margin-top: 1.25rem;
+}
+.btn-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-muted);
+  background: var(--shortcut-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all var(--trans-speed) ease;
+}
+.btn-more-toggle:hover {
+  color: var(--text-main);
+  border-color: var(--accent);
+  background: var(--shortcut-hover);
+}
+.btn-more-toggle .chevron-icon {
+  transition: transform 0.25s ease;
+}
+.btn-more-toggle[aria-expanded="true"] .chevron-icon {
+  transform: rotate(180deg);
+}
+.inner-mechanisms-content {
+  margin-top: 1rem;
+  transition: all 0.3s ease;
 }
