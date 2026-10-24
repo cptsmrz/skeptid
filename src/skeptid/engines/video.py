@@ -24,10 +24,12 @@ from skeptid.core.types import (
     ProviderResult,
     Verdict,
 )
+from skeptid.forensics.dct import compute_block_dct
 from skeptid.forensics.ela import compute_ela
 from skeptid.forensics.heatmap import generate_forensic_heatmap
 from skeptid.forensics.noise import compute_noise_residual
 from skeptid.forensics.spectrum import compute_spectrum
+from skeptid.forensics.video_motion import analyze_video_temporal_jitter
 
 MAX_VIDEO_DURATION_S = 60.0
 DEFAULT_FRAME_SAMPLES = 16
@@ -98,6 +100,7 @@ class VideoEngine:
 
             frame_scores: list[dict[str, Any]] = []
             frame_risks: list[float] = []
+            sampled_frames: list[Image.Image] = []
             highest_risk = -1.0
             highest_risk_t = 0.0
             highest_risk_frame_img: Image.Image | None = None
@@ -112,12 +115,14 @@ class VideoEngine:
 
                 rgb_frame = cv2.cvtColor(bgr_frame, cv2.COLOR_BGR2RGB)
                 pil_img = Image.fromarray(rgb_frame)
+                sampled_frames.append(pil_img)
                 t_sec = round(idx / fps, 2)
 
                 # Quick frame forensic evaluation
                 ela = compute_ela(pil_img)
                 spec = compute_spectrum(pil_img)
                 noise = compute_noise_residual(pil_img)
+                dct = compute_block_dct(pil_img)
 
                 # Calculate frame risk score (0.0 to 1.0)
                 frame_risk = 0.05
@@ -129,6 +134,8 @@ class VideoEngine:
                     frame_risk += 0.30
                 if ela.high_diff_block_ratio > 0.05 or ela.mean_diff > 8.0:
                     frame_risk += 0.25
+                if dct.is_suspicious:
+                    frame_risk += 0.20
                 frame_risk = round(min(1.0, frame_risk), 4)
 
                 frame_risks.append(frame_risk)
@@ -159,8 +166,38 @@ class VideoEngine:
 
             video_risk = round(0.50 * top_k_mean + 0.30 * max_risk + 0.20 * mean_risk, 4)
 
-            # 5. Temporal consistency check
+            # 5. Temporal consistency & optical-flow landmark jitter check
             evidence: list[Evidence] = []
+            jitter_res = analyze_video_temporal_jitter(sampled_frames)
+            if jitter_res.is_suspicious:
+                video_risk = round(min(1.0, video_risk + 0.15), 4)
+                evidence.append(
+                    Evidence(
+                        kind="metric",
+                        description=f"Temporal landmark & facial motion jitter: {jitter_res.description}",
+                        payload={
+                            "metric": "landmark_motion_jitter",
+                            "mean_motion_jitter": jitter_res.mean_motion_jitter,
+                            "max_landmark_drift": jitter_res.max_landmark_drift,
+                            "direction_entropy": jitter_res.direction_entropy,
+                            "anomaly_score": jitter_res.jitter_anomaly_score,
+                        },
+                    )
+                )
+            elif jitter_res.mean_motion_jitter > 0:
+                evidence.append(
+                    Evidence(
+                        kind="metric",
+                        description=f"Temporal motion trajectory: {jitter_res.description}",
+                        payload={
+                            "metric": "landmark_motion_jitter",
+                            "mean_motion_jitter": jitter_res.mean_motion_jitter,
+                            "max_landmark_drift": jitter_res.max_landmark_drift,
+                            "anomaly_score": jitter_res.jitter_anomaly_score,
+                        },
+                    )
+                )
+
             adjacent_jumps = [
                 abs(frame_risks[i] - frame_risks[i - 1]) for i in range(1, len(frame_risks))
             ]

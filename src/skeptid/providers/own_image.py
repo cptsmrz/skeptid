@@ -18,8 +18,10 @@ from skeptid.core.types import (
     Modality,
     ProviderResult,
 )
+from skeptid.forensics.dct import compute_block_dct
 from skeptid.forensics.ela import compute_ela
 from skeptid.forensics.exif import analyze_exif
+from skeptid.forensics.gabor import compute_gabor_texture
 from skeptid.forensics.heatmap import generate_forensic_heatmap
 from skeptid.forensics.noise import compute_noise_residual
 from skeptid.forensics.spectrum import compute_spectrum
@@ -72,6 +74,8 @@ class OwnImageProvider(Provider):
         spec_res = compute_spectrum(image)
         noise_res = compute_noise_residual(image)
         exif_res = analyze_exif(image)
+        dct_res = compute_block_dct(image)
+        gabor_res = compute_gabor_texture(image)
 
         # 2. Heuristic scoring across IMAGE_LABELS
         # Scores start neutral and accumulate forensic evidence weights
@@ -96,6 +100,32 @@ class OwnImageProvider(Provider):
                     kind="metric",
                     description="Synthetic noise residual kurtosis anomaly",
                     payload={"metric": "mean_kurtosis", "score": noise_res.mean_kurtosis},
+                )
+            )
+        if dct_res.is_suspicious:
+            ai_gen_signals += 0.30
+            evidence.append(
+                Evidence(
+                    kind="metric",
+                    description=f"8x8 Block DCT residual anomaly: {dct_res.description}",
+                    payload={
+                        "metric": "dct_anomaly_score",
+                        "score": dct_res.dct_anomaly_score,
+                        "high_freq_variance": dct_res.high_freq_variance,
+                    },
+                )
+            )
+        if gabor_res.is_suspicious:
+            ai_gen_signals += 0.25
+            evidence.append(
+                Evidence(
+                    kind="metric",
+                    description=f"Gabor multi-angle texture anomaly: {gabor_res.description}",
+                    payload={
+                        "metric": "gabor_anomaly_score",
+                        "score": gabor_res.gabor_anomaly_score,
+                        "orientation_variance": gabor_res.orientation_variance,
+                    },
                 )
             )
         if exif_res.is_ai_software:
@@ -172,6 +202,8 @@ class OwnImageProvider(Provider):
             authentic_signals += 0.20
         if not noise_res.kurtosis_anomaly and ela_res.high_diff_block_ratio < 0.03:
             authentic_signals += 0.35
+        if not dct_res.is_suspicious and not gabor_res.is_suspicious:
+            authentic_signals += 0.25
 
         scores["ai_generated"] += ai_gen_signals
         scores["ai_edited"] += ai_edit_signals

@@ -64,6 +64,17 @@ class AudioEngine:
                     "acoustic_entropy": forensic_res.acoustic_entropy,
                 },
             ),
+            Evidence(
+                kind="metric",
+                description="13-band MFCC distribution & Isolation Forest anomaly metric",
+                payload={
+                    "mfcc_summary": forensic_res.mfcc_summary,
+                    "spectral_centroid": forensic_res.spectral_centroid,
+                    "spectral_rolloff": forensic_res.spectral_rolloff,
+                    "isolation_forest_score": forensic_res.isolation_forest_score,
+                    "is_acoustic_outlier": forensic_res.is_acoustic_outlier,
+                },
+            ),
         ]
 
         for anomaly in forensic_res.anomalies:
